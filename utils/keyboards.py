@@ -11,6 +11,7 @@ def admin_panel_keyboard() -> InlineKeyboardMarkup:
         [InlineKeyboardButton(text="🔗 Generar Enlace", callback_data="generate_link")],
         [InlineKeyboardButton(text="➕ Añadir VIP Manual", callback_data="add_vip_manual")],
         [InlineKeyboardButton(text="➖ Eliminar VIP Manual", callback_data="remove_vip_manual")],
+        [InlineKeyboardButton(text="📋 Consultar Suscripciones", callback_data="view_subscriptions")],
         # [InlineKeyboardButton(text="📈 Ver Estadísticas", callback_data="view_stats")], # Ejemplo para futura expansión
     ]
     return InlineKeyboardMarkup(inline_keyboard=buttons)

@@ -240,3 +240,25 @@ async def process_select_tariff(callback: types.CallbackQuery):
         reply_markup=admin_panel_keyboard()
     )
     await callback.answer()
+
+# --- Consultar Suscripciones Activas ---
+@admin_router.callback_query(F.data == "view_subscriptions")
+async def view_active_subscriptions(callback: types.CallbackQuery):
+    subscriptions = await get_active_subscriptions()
+    
+    if not subscriptions:
+        await callback.message.edit_text("No hay suscripciones VIP activas en este momento.", reply_markup=admin_panel_keyboard())
+        await callback.answer()
+        return
+
+    response_text = "📋 **Suscripciones VIP Activas:**\n\n"
+    for sub, user in subscriptions:
+        response_text += (
+            f"👤 Usuario: {user.first_name} ({user.telegram_id})\n"
+            f"  - Inicio: {sub.start_date.strftime('%d/%m/%Y %H:%M')}\n"
+            f"  - Fin: {sub.end_date.strftime('%d/%m/%Y %H:%M')}\n"
+            f"  - Activa: {'Sí' if sub.is_active else 'No'}\n\n"
+        )
+    
+    await callback.message.edit_text(response_text, parse_mode="Markdown", reply_markup=admin_panel_keyboard())
+    await callback.answer()

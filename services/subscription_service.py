@@ -1,3 +1,4 @@
+
 import uuid
 import datetime
 from sqlalchemy.future import select
@@ -127,3 +128,15 @@ async def remove_subscription(user_db_id: int) -> bool:
             await session.commit()
             return True
         return False
+
+async def get_active_subscriptions() -> list[tuple[Subscription, User]]:
+    """
+    Obtiene todas las suscripciones VIP activas junto con la información del usuario.
+    """
+    async with async_session() as session:
+        result = await session.execute(
+            select(Subscription, User)
+            .join(User)
+            .filter(Subscription.is_active == True)
+        )
+        return result.all()
