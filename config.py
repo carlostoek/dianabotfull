@@ -1,9 +1,9 @@
 
 import os
 
-# Cargar variables de entorno desde un archivo .env para desarrollo local
-from dotenv import load_dotenv
-load_dotenv()
+# Cargar variables de entorno (solo para desarrollo local, Railway las inyecta directamente)
+# from dotenv import load_dotenv
+# load_dotenv()
 
 # --- Configuración del Bot ---
 # Token de Telegram. ¡NUNCA lo subas a un repositorio público!
@@ -17,8 +17,8 @@ DATABASE_URL = "sqlite+aiosqlite:///dianabot.db"
 # --- Configuración de Canales ---
 # IDs de los canales. El bot debe ser administrador en ambos.
 # Se recomienda usar variables de entorno para mantener la flexibilidad.
-FREE_CHANNEL_ID = os.getenv("FREE_CHANNEL_ID", -1001234567890)  # Reemplazar con el ID real
-VIP_CHANNEL_ID = os.getenv("VIP_CHANNEL_ID", -1001234567891)    # Reemplazar con el ID real
+FREE_CHANNEL_ID = int(os.getenv("FREE_CHANNEL_ID")) if os.getenv("FREE_CHANNEL_ID") else None
+VIP_CHANNEL_ID = int(os.getenv("VIP_CHANNEL_ID")) if os.getenv("VIP_CHANNEL_ID") else None
 
 # Delay en minutos antes de aceptar automáticamente una solicitud de unión al canal gratuito.
 # Durante este tiempo, el bot enviará mensajes de promoción de redes sociales.

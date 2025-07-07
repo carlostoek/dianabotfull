@@ -189,3 +189,14 @@ def confirm_delete_post_keyboard(post_id: int) -> InlineKeyboardMarkup:
         [InlineKeyboardButton(text="❌ Cancelar", callback_data="cancel_operation")]
     ]
     return InlineKeyboardMarkup(inline_keyboard=buttons)
+
+def send_post_channel_selection_keyboard() -> InlineKeyboardMarkup:
+    """
+    Genera el teclado para seleccionar el canal al que se enviará la publicación.
+    """
+    buttons = [
+        [InlineKeyboardButton(text="Canal Gratuito", callback_data="select_send_channel_free")],
+        [InlineKeyboardButton(text="Canal VIP", callback_data="select_send_channel_vip")],
+        [InlineKeyboardButton(text="❌ Cancelar", callback_data="cancel_operation")]
+    ]
+    return InlineKeyboardMarkup(inline_keyboard=buttons)

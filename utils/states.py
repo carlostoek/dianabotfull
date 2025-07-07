@@ -48,6 +48,7 @@ class PostCreation(StatesGroup):
     waiting_for_button_col_order = State()
     waiting_for_reaction_emoji = State()
     waiting_for_schedule_time = State()
+    waiting_for_channel_selection = State()
 
 class PostEditing(StatesGroup):
     """

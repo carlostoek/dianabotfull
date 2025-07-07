@@ -2,7 +2,7 @@ from aiogram import Router, types, F
 from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
 
-from config import ADMIN_IDS
+from config import ADMIN_IDS, FREE_CHANNEL_ID, VIP_CHANNEL_ID
 from utils.states import TariffCreation, AddVipManual, RemoveVipManual
 from utils.keyboards import admin_panel_keyboard, tariff_duration_keyboard, tariff_confirmation_keyboard, tariffs_keyboard, tariffs_selection_keyboard, confirm_user_action_keyboard
 from services.subscription_service import create_tariff, get_all_tariffs, generate_invite_token, create_manual_subscription, remove_subscription
@@ -506,6 +506,92 @@ async def finish_post_creation(callback: types.CallbackQuery, state: FSMContext)
     # Por ahora, usaremos el FREE_CHANNEL_ID como ejemplo.
     # En futuras fases, se podría añadir un paso para seleccionar el canal.
     channel_id = FREE_CHANNEL_ID # O VIP_CHANNEL_ID, o un ID seleccionado por el admin
+
+    data = await state.get_data()
+    
+    # Determinar qué canales están configurados
+    free_configured = FREE_CHANNEL_ID is not None
+    vip_configured = VIP_CHANNEL_ID is not None
+
+    if not free_configured and not vip_configured:
+        await callback.message.edit_text(
+            "❌ No hay canales configurados. Por favor, configura al menos un canal (gratuito o VIP) en la sección de 'Configuración de Canales' para poder enviar publicaciones.",
+            reply_markup=admin_panel_keyboard()
+        )
+        await state.clear()
+        await callback.answer()
+        return
+    
+    if free_configured and not vip_configured:
+        channel_id = FREE_CHANNEL_ID
+        await callback.message.edit_text(
+            "✅ Solo el canal gratuito está configurado. La publicación se enviará al canal gratuito.",
+            reply_markup=admin_panel_keyboard()
+        )
+        # Proceder con la creación de la publicación para el canal gratuito
+        post = await create_post(
+            channel_id=channel_id,
+            message_text=data.get("message_text"),
+            media_type=data.get("media_type"),
+            media_file_id=data.get("media_file_id"),
+            is_protected=data.get("is_protected", False),
+            scheduled_time=data.get("scheduled_time"),
+            buttons_data=data.get("buttons"),
+            reactions_data=data.get("reactions")
+        )
+        await callback.message.edit_text(f"✅ Publicación creada exitosamente con ID: {post.id}.", reply_markup=admin_panel_keyboard())
+        await state.clear()
+        await callback.answer()
+        return
+
+    if not free_configured and vip_configured:
+        channel_id = VIP_CHANNEL_ID
+        await callback.message.edit_text(
+            "✅ Solo el canal VIP está configurado. La publicación se enviará al canal VIP.",
+            reply_markup=admin_panel_keyboard()
+        )
+        # Proceder con la creación de la publicación para el canal VIP
+        post = await create_post(
+            channel_id=channel_id,
+            message_text=data.get("message_text"),
+            media_type=data.get("media_type"),
+            media_file_id=data.get("media_file_id"),
+            is_protected=data.get("is_protected", False),
+            scheduled_time=data.get("scheduled_time"),
+            buttons_data=data.get("buttons"),
+            reactions_data=data.get("reactions")
+        )
+        await callback.message.edit_text(f"✅ Publicación creada exitosamente con ID: {post.id}.", reply_markup=admin_panel_keyboard())
+        await state.clear()
+        await callback.answer()
+        return
+
+    if free_configured and vip_configured:
+        # Ambos canales configurados, pedir al admin que seleccione
+        await callback.message.edit_text(
+            "Ambos canales (gratuito y VIP) están configurados. Por favor, selecciona el canal al que deseas enviar la publicación:",
+            reply_markup=send_post_channel_selection_keyboard() # Necesitamos crear este teclado
+        )
+        await state.set_state(PostCreation.waiting_for_channel_selection) # Necesitamos crear este estado
+        await callback.answer()
+        return
+
+@admin_router.callback_query(PostCreation.waiting_for_channel_selection, F.data.startswith("select_send_channel_"))
+async def process_channel_selection_for_post(callback: types.CallbackQuery, state: FSMContext):
+    selected_channel_type = callback.data.split("_")[3]
+    data = await state.get_data()
+
+    channel_id = None
+    if selected_channel_type == "free":
+        channel_id = FREE_CHANNEL_ID
+    elif selected_channel_type == "vip":
+        channel_id = VIP_CHANNEL_ID
+
+    if channel_id is None:
+        await callback.message.edit_text("❌ Error: El canal seleccionado no está configurado. Por favor, inténtalo de nuevo o configura el canal.", reply_markup=admin_panel_keyboard())
+        await state.clear()
+        await callback.answer()
+        return
 
     post = await create_post(
         channel_id=channel_id,
