@@ -12,6 +12,7 @@ def admin_panel_keyboard() -> InlineKeyboardMarkup:
         [InlineKeyboardButton(text="➕ Añadir VIP Manual", callback_data="add_vip_manual")],
         [InlineKeyboardButton(text="➖ Eliminar VIP Manual", callback_data="remove_vip_manual")],
         [InlineKeyboardButton(text="📋 Consultar Suscripciones", callback_data="view_subscriptions")],
+        [InlineKeyboardButton(text="⚙️ Configurar Canales", callback_data="configure_channels")],
         # [InlineKeyboardButton(text="📈 Ver Estadísticas", callback_data="view_stats")], # Ejemplo para futura expansión
     ]
     return InlineKeyboardMarkup(inline_keyboard=buttons)
@@ -68,5 +69,18 @@ def confirm_user_action_keyboard(user_id: int, action: str) -> InlineKeyboardMar
     buttons = [
         [InlineKeyboardButton(text="✅ Confirmar", callback_data=f"confirm_{action}_{user_id}")],
         [InlineKeyboardButton(text="❌ Cancelar", callback_data="cancel_operation")]
+    ]
+    return InlineKeyboardMarkup(inline_keyboard=buttons)
+
+# --- Teclado de Configuración de Canales ---
+def channel_config_keyboard() -> InlineKeyboardMarkup:
+    """
+    Genera el teclado para las opciones de configuración de canales.
+    """
+    buttons = [
+        [InlineKeyboardButton(text="🆔 Configurar Canal Gratuito", callback_data="set_free_channel_id")],
+        [InlineKeyboardButton(text="🆔 Configurar Canal VIP", callback_data="set_vip_channel_id")],
+        [InlineKeyboardButton(text="⏳ Configurar Delay Canal Gratuito", callback_data="set_free_channel_delay")],
+        [InlineKeyboardButton(text="↩️ Volver al Panel", callback_data="admin_panel")]
     ]
     return InlineKeyboardMarkup(inline_keyboard=buttons)

@@ -262,3 +262,65 @@ async def view_active_subscriptions(callback: types.CallbackQuery):
     
     await callback.message.edit_text(response_text, parse_mode="Markdown", reply_markup=admin_panel_keyboard())
     await callback.answer()
+
+# --- Configuración de Canales ---
+@admin_router.callback_query(F.data == "configure_channels")
+async def configure_channels(callback: types.CallbackQuery):
+    await callback.message.edit_text("Selecciona la configuración de canal que deseas modificar:", reply_markup=channel_config_keyboard())
+    await callback.answer()
+
+@admin_router.callback_query(F.data == "set_free_channel_id")
+async def set_free_channel_id(callback: types.CallbackQuery, state: FSMContext):
+    await callback.message.edit_text("Por favor, envía el ID del canal gratuito.")
+    await state.set_state(ChannelConfig.waiting_for_free_channel_id)
+    await callback.answer()
+
+@admin_router.message(ChannelConfig.waiting_for_free_channel_id)
+async def process_free_channel_id(message: types.Message, state: FSMContext):
+    try:
+        channel_id = int(message.text)
+        await create_or_update_channel(name="free_channel", channel_id=channel_id)
+        await message.answer("✅ ID del canal gratuito configurado exitosamente.", reply_markup=admin_panel_keyboard())
+        await state.clear()
+    except ValueError:
+        await message.answer("ID de canal inválido. Por favor, envía un número entero.")
+
+@admin_router.callback_query(F.data == "set_vip_channel_id")
+async def set_vip_channel_id(callback: types.CallbackQuery, state: FSMContext):
+    await callback.message.edit_text("Por favor, envía el ID del canal VIP.")
+    await state.set_state(ChannelConfig.waiting_for_vip_channel_id)
+    await callback.answer()
+
+@admin_router.message(ChannelConfig.waiting_for_vip_channel_id)
+async def process_vip_channel_id(message: types.Message, state: FSMContext):
+    try:
+        channel_id = int(message.text)
+        await create_or_update_channel(name="vip_channel", channel_id=channel_id)
+        await message.answer("✅ ID del canal VIP configurado exitosamente.", reply_markup=admin_panel_keyboard())
+        await state.clear()
+    except ValueError:
+        await message.answer("ID de canal inválido. Por favor, envía un número entero.")
+
+@admin_router.callback_query(F.data == "set_free_channel_delay")
+async def set_free_channel_delay(callback: types.CallbackQuery, state: FSMContext):
+    await callback.message.edit_text("Por favor, envía el delay en minutos para las solicitudes de unión al canal gratuito.")
+    await state.set_state(ChannelConfig.waiting_for_free_channel_delay)
+    await callback.answer()
+
+@admin_router.message(ChannelConfig.waiting_for_free_channel_delay)
+async def process_free_channel_delay(message: types.Message, state: FSMContext):
+    try:
+        delay = int(message.text)
+        # Actualizar el canal gratuito con el nuevo delay
+        free_channel = await get_channel_by_name("free_channel")
+        if free_channel:
+            await create_or_update_channel(name="free_channel", channel_id=free_channel.channel_id, join_delay_minutes=delay)
+        else:
+            await message.answer("Primero configura el ID del canal gratuito.", reply_markup=admin_panel_keyboard())
+            await state.clear()
+            return
+
+        await message.answer(f"✅ Delay del canal gratuito configurado a {delay} minutos.", reply_markup=admin_panel_keyboard())
+        await state.clear()
+    except ValueError:
+        await message.answer("Delay inválido. Por favor, envía un número entero.")

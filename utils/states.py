@@ -22,3 +22,11 @@ class RemoveVipManual(StatesGroup):
     Define los estados para el proceso de eliminar un usuario VIP manualmente.
     """
     waiting_for_user_id = State() # Esperando el ID de Telegram del usuario a eliminar
+
+class ChannelConfig(StatesGroup):
+    """
+    Define los estados para el proceso de configuración de canales.
+    """
+    waiting_for_free_channel_id = State()
+    waiting_for_vip_channel_id = State()
+    waiting_for_free_channel_delay = State()
