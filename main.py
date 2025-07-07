@@ -103,7 +103,7 @@ async def main():
         # Cierre de la sesión del bot al finalizar y apagado del scheduler.
         scheduler.shutdown()
         await bot.session.close()
-        logger.info("El bot se ha detenido.")"message", "chat_member"]
+        logger.info("El bot se ha detenido.")
 
     # --- Registro de Routers ---
     # Aquí es donde conectamos los diferentes módulos de manejadores al dispatcher.
