@@ -3,10 +3,13 @@ from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
 
 from config import ADMIN_IDS, FREE_CHANNEL_ID, VIP_CHANNEL_ID
-from utils.states import TariffCreation, AddVipManual, RemoveVipManual
-from utils.keyboards import admin_panel_keyboard, tariff_duration_keyboard, tariff_confirmation_keyboard, tariffs_keyboard, tariffs_selection_keyboard, confirm_user_action_keyboard
-from services.subscription_service import create_tariff, get_all_tariffs, generate_invite_token, create_manual_subscription, remove_subscription
+from utils.states import TariffCreation, AddVipManual, RemoveVipManual, ChannelConfig, PostCreation, PostEditing
+from utils.keyboards import admin_panel_keyboard, tariff_duration_keyboard, tariff_confirmation_keyboard, tariffs_keyboard, tariffs_selection_keyboard, confirm_user_action_keyboard, channel_config_keyboard, post_management_keyboard, post_type_selection_keyboard, post_options_keyboard, post_button_type_keyboard, post_reactions_keyboard, send_post_channel_selection_keyboard, post_list_keyboard, post_edit_options_keyboard, confirm_delete_post_keyboard
+from services.subscription_service import create_tariff, get_all_tariffs, generate_invite_token, create_manual_subscription, remove_subscription, get_active_subscriptions
 from services.user_service import get_user_by_telegram_id
+from services.channel_service import create_or_update_channel, get_channel_by_name
+from services.post_service import create_post, get_all_posts, get_post_by_id, update_post, delete_post
+import datetime
 
 # --- Router de Administración ---
 # Este router manejará los comandos exclusivos para los administradores del bot.
