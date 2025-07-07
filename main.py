@@ -3,6 +3,7 @@ import asyncio
 import logging
 
 from aiogram import Bot, Dispatcher
+from aiogram.client.bot import DefaultBotProperties
 from aiogram.fsm.storage.memory import MemoryStorage
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.interval import IntervalTrigger
@@ -42,7 +43,7 @@ async def main():
     storage = MemoryStorage()
     
     # El objeto `Bot` es la interfaz principal para la API de Telegram.
-    bot = Bot(token=BOT_TOKEN, parse_mode="HTML")
+    bot = Bot(token=BOT_TOKEN, default=DefaultBotProperties(parse_mode="HTML"))
     
     # El `Dispatcher` es el responsable de procesar las actualizaciones (mensajes, etc.)
     # y distribuirlas a los manejadores (handlers) correspondientes.
@@ -105,27 +106,7 @@ async def main():
         await bot.session.close()
         logger.info("El bot se ha detenido.")
 
-    # --- Registro de Routers ---
-    # Aquí es donde conectamos los diferentes módulos de manejadores al dispatcher.
-    # Por ahora, solo tenemos el router público.
-    dp.include_router(public_router)
-    dp.include_router(admin_router)
-    # Próximamente añadiremos más routers aquí (admin_router, subscription_router, etc.)
-
-    # --- Arranque del Bot ---
-    # `bot.delete_webhook` asegura que no haya un webhook configurado previamente.
-    # `dp.start_polling` inicia el proceso de sondeo largo (long polling) para
-    # recibir actualizaciones de Telegram.
-    try:
-        await bot.delete_webhook(drop_pending_updates=True)
-        logger.info("Bot iniciado y escuchando actualizaciones...")
-        await dp.start_polling(bot)
-    except Exception as e:
-        logger.error(f"Ocurrió un error durante la ejecución del bot: {e}")
-    finally:
-        # Cierre de la sesión del bot al finalizar.
-        await bot.session.close()
-        logger.info("El bot se ha detenido.")
+    
 
 if __name__ == '__main__':
     # Punto de entrada para ejecutar el bot.
