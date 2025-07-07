@@ -56,33 +56,30 @@ async def main():
     dp.include_router(admin_router)
 
     # --- Configuración y Arranque del Scheduler ---
-    # El scheduler se encargará de ejecutar tareas programadas como la verificación
-    # de expiración de suscripciones y el envío de recordatorios.
-    scheduler = AsyncIOScheduler()
+    # El scheduler se encargará de ejecutar tareas programadas.
+    scheduler = AsyncIOScheduler(timezone="UTC")
     
-    # Añadir trabajos al scheduler
-    # Se ejecutan cada 1 hora (puedes ajustar la frecuencia según sea necesario)
+    # Tarea diaria para notificar y gestionar expiraciones de suscripciones.
+    # Se ejecuta todos los días a las 09:00 UTC.
     scheduler.add_job(
-        check_and_notify_expirations, 
-        IntervalTrigger(hours=1), 
-        kwargs={'bot': bot}, 
-        id='notify_expirations'
+        daily_subscription_check,
+        trigger='cron',
+        hour=9,
+        minute=0,
+        kwargs={'bot': bot},
+        id='daily_subscription_check'
     )
-    scheduler.add_job(
-        check_and_expire_subscriptions, 
-        IntervalTrigger(hours=1), 
-        kwargs={'bot': bot}, 
-        id='expire_subscriptions'
-    )
+
+    # Tareas frecuentes para solicitudes de unión y publicaciones programadas.
     scheduler.add_job(
         process_pending_join_requests,
-        IntervalTrigger(minutes=1), # Ejecutar más frecuentemente para procesar solicitudes
+        IntervalTrigger(minutes=1),
         kwargs={'bot': bot},
         id='process_join_requests'
     )
     scheduler.add_job(
         send_scheduled_posts,
-        IntervalTrigger(minutes=1), # Ejecutar cada minuto para publicaciones programadas
+        IntervalTrigger(minutes=1),
         kwargs={'bot': bot},
         id='send_scheduled_posts'
     )

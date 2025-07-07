@@ -1,6 +1,7 @@
 
 import uuid
 import datetime
+from sqlalchemy import func
 from sqlalchemy.future import select
 
 from database.database import async_session
@@ -138,5 +139,65 @@ async def get_active_subscriptions() -> list[tuple[Subscription, User]]:
             select(Subscription, User)
             .join(User)
             .filter(Subscription.is_active == True)
+            .order_by(Subscription.end_date.asc())
         )
         return result.all()
+
+async def get_subscriptions_expiring_on(target_date: datetime.date) -> list[tuple[Subscription, User]]:
+    """
+    Busca suscripciones activas que expiran en una fecha específica.
+    """
+    async with async_session() as session:
+        start_of_day = datetime.datetime.combine(target_date, datetime.time.min)
+        end_of_day = datetime.datetime.combine(target_date, datetime.time.max)
+        
+        result = await session.execute(
+            select(Subscription, User)
+            .join(User)
+            .filter(
+                Subscription.is_active == True,
+                Subscription.end_date >= start_of_day,
+                Subscription.end_date <= end_of_day
+            )
+        )
+        return result.all()
+
+async def get_expired_subscriptions_and_mark_inactive() -> list[tuple[Subscription, User]]:
+    """
+    Busca suscripciones que han expirado, las marca como inactivas y las devuelve.
+    """
+    async with async_session() as session:
+        now = datetime.datetime.utcnow()
+        result = await session.execute(
+            select(Subscription, User)
+            .join(User)
+            .filter(
+                Subscription.is_active == True,
+                Subscription.end_date <= now
+            )
+        )
+        expired_list = result.all()
+
+        if not expired_list:
+            return []
+
+        # Marcar como inactivas
+        expired_ids = [sub.id for sub, user in expired_list]
+        for sub_id in expired_ids:
+            subscription = await session.get(Subscription, sub_id)
+            if subscription:
+                subscription.is_active = False
+        
+        await session.commit()
+        return expired_list
+
+async def count_active_subscriptions() -> int:
+    """
+    Cuenta el número total de suscripciones activas.
+    """
+    async with async_session() as session:
+        result = await session.execute(
+            select(func.count(Subscription.id)).filter(Subscription.is_active == True)
+        )
+        return result.scalar_one()
+

@@ -1,3 +1,5 @@
+import datetime
+from sqlalchemy import func
 from sqlalchemy.future import select
 from database.database import async_session
 from database.models import User
@@ -57,3 +59,21 @@ async def get_user_by_telegram_id(telegram_id: int) -> User | None:
     async with async_session() as session:
         result = await session.execute(select(User).filter(User.telegram_id == telegram_id))
         return result.scalars().first()
+
+async def count_total_users() -> int:
+    """
+    Cuenta el número total de usuarios registrados en la base de datos.
+    """
+    async with async_session() as session:
+        result = await session.execute(select(func.count(User.id)))
+        return result.scalar_one()
+
+async def count_new_users(since_datetime: datetime.datetime) -> int:
+    """
+    Cuenta el número de usuarios registrados desde una fecha y hora específicas.
+    """
+    async with async_session() as session:
+        result = await session.execute(
+            select(func.count(User.id)).filter(User.created_at >= since_datetime)
+        )
+        return result.scalar_one()

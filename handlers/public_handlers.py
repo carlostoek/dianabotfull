@@ -3,10 +3,11 @@ from aiogram import Router, types, F, Bot
 from aiogram.filters import CommandStart, ChatMemberUpdatedFilter, CommandObject
 from aiogram.types import ChatMemberUpdated, ChatJoinRequest
 
-from config import FREE_CHANNEL_ID, VIP_CHANNEL_ID, FREE_CHANNEL_JOIN_DELAY_MINUTES
+from config import FREE_CHANNEL_ID, VIP_CHANNEL_ID, FREE_CHANNEL_JOIN_DELAY_MINUTES, ADMIN_IDS
 from services.user_service import get_or_create_user, ban_user
 from services.subscription_service import validate_and_use_token
 from services.channel_service import get_channel_by_id, create_join_request
+from utils.keyboards import main_admin_keyboard
 
 # --- Router Público ---
 # Este router manejará los comandos y mensajes de usuarios no administradores.
@@ -27,9 +28,19 @@ async def handle_start(message: types.Message, command: CommandObject):
 
     Saluda al usuario y le da la bienvenida al bot.
     Si el comando /start incluye un token, intenta validarlo para una suscripción VIP.
+    Si el usuario es un administrador, muestra el panel de administración.
     """
     # Extraer el argumento del comando /start (si existe)
     args = command.args
+    user_id = message.from_user.id
+
+    # Si es un administrador y no está usando un enlace de invitación, mostrar panel de admin
+    if user_id in ADMIN_IDS and not args:
+        await message.answer(
+            "¡Hola, administrador! 👋\n\nBienvenido al Panel de Control de Diana Bot.",
+            reply_markup=main_admin_keyboard()
+        )
+        return
 
     if args: # Si hay un argumento, asumimos que es un token de invitación
         user = await get_or_create_user(
@@ -57,7 +68,7 @@ async def handle_start(message: types.Message, command: CommandObject):
             except Exception as e:
                 await message.answer(
                     "Hubo un error al generar tu enlace de invitación al canal VIP. "
-                    "Por favor, contacta a un administrador.\n\n" 
+                    "Por favor, contacta a un administrador.\n\n"
                     f"Error: {e}"
                 )
         else:
@@ -65,13 +76,14 @@ async def handle_start(message: types.Message, command: CommandObject):
                 "El enlace de invitación no es válido, ha expirado o ya ha sido utilizado. "
                 "Por favor, verifica tu enlace o contacta a un administrador."
             )
-    else: # Comportamiento normal del comando /start sin argumentos
+    else: # Comportamiento normal del comando /start sin argumentos para usuarios no-admin
         welcome_message = (
             f"¡Hola, {message.from_user.first_name}! 👋\n\n"
             f"Bienvenido a Diana Bot, tu asistente para la gestión de canales.\n\n"
             f"Aquí podrás acceder a contenido exclusivo y mucho más."
         )
         await message.answer(welcome_message)
+
 
 # --- Manejador de Nuevos Miembros ---
 @public_router.chat_member(ChatMemberUpdatedFilter(member_status_changed=(F.status == "member") | (F.status == "administrator")))
