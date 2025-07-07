@@ -1,6 +1,6 @@
 
 from aiogram import Router, types, F, Bot
-from aiogram.filters import CommandStart, ChatMemberUpdatedFilter
+from aiogram.filters import CommandStart, ChatMemberUpdatedFilter, CommandObject
 from aiogram.types import ChatMemberUpdated, ChatJoinRequest
 
 from config import FREE_CHANNEL_ID, VIP_CHANNEL_ID, FREE_CHANNEL_JOIN_DELAY_MINUTES
@@ -21,7 +21,7 @@ public_router.chat_member.filter(F.chat.id == int(FREE_CHANNEL_ID))
 
 # --- Comando /start ---
 @public_router.message(CommandStart())
-async def handle_start(message: types.Message):
+async def handle_start(message: types.Message, command: CommandObject):
     """
     Manejador para el comando /start.
 
@@ -29,7 +29,7 @@ async def handle_start(message: types.Message):
     Si el comando /start incluye un token, intenta validarlo para una suscripción VIP.
     """
     # Extraer el argumento del comando /start (si existe)
-    args = message.get_args()
+    args = command.args
 
     if args: # Si hay un argumento, asumimos que es un token de invitación
         user = await get_or_create_user(
