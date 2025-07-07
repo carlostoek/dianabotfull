@@ -7,7 +7,7 @@ load_dotenv()
 
 # --- Configuración del Bot ---
 # Token de Telegram. ¡NUNCA lo subas a un repositorio público!
-BOT_TOKEN = os.getenv("BOT_TOKEN", "YOUR_TELEGRAM_BOT_TOKEN")
+BOT_TOKEN = os.getenv("BOT_TOKEN", "Y7997978902:AAGEGQVfpGpiiLXaAP7oR81rbrAx2RBwONQ")
 
 # --- Configuración de la Base de Datos ---
 # URL de conexión a la base de datos.
