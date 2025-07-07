@@ -8,6 +8,7 @@ from aiogram.fsm.storage.memory import MemoryStorage
 from config import BOT_TOKEN
 from database.database import create_tables
 from handlers.public_handlers import public_router
+from handlers.admin_handlers import admin_router
 
 # --- Configuración del Logging ---
 # Configura el sistema de logging para mostrar información útil durante la ejecución.
@@ -49,6 +50,7 @@ async def main():
     # Aquí es donde conectamos los diferentes módulos de manejadores al dispatcher.
     # Por ahora, solo tenemos el router público.
     dp.include_router(public_router)
+    dp.include_router(admin_router)
     # Próximamente añadiremos más routers aquí (admin_router, subscription_router, etc.)
 
     # --- Arranque del Bot ---
