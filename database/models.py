@@ -1,6 +1,6 @@
 
 from sqlalchemy import (
-    create_engine, Column, Integer, String, BigInteger, DateTime, Boolean, ForeignKey
+    create_engine, Column, Integer, String, BigInteger, DateTime, Boolean, ForeignKey, Float
 )
 from sqlalchemy.orm import declarative_base, relationship
 from sqlalchemy.sql import func
@@ -78,6 +78,48 @@ class Channel(Base):
 
     def __repr__(self):
         return f"<Channel(name='{self.name}', channel_id={self.channel_id})>"
+
+class Tariff(Base):
+    """
+    Representa una tarifa de suscripción configurable por el administrador.
+
+    Define la duración, el precio y el nombre de un plan de suscripción
+    que se puede ofrecer a los usuarios.
+    """
+    __tablename__ = 'tariffs'
+
+    id = Column(Integer, primary_key=True)
+    name = Column(String, unique=True, nullable=False)
+    duration_days = Column(Integer, nullable=False)  # Duración en días
+    price = Column(Float, nullable=False)
+    is_active = Column(Boolean, default=True)
+
+    tokens = relationship("InviteToken", back_populates="tariff")
+
+    def __repr__(self):
+        return f"<Tariff(name='{self.name}', duration_days={self.duration_days}, price={self.price})>"
+
+class InviteToken(Base):
+    """
+    Representa un token de invitación de un solo uso para acceder al canal VIP.
+
+    Cada token está asociado a una tarifa y tiene una fecha de expiración.
+    Se utiliza para generar los enlaces de invitación personalizados.
+    """
+    __tablename__ = 'invite_tokens'
+
+    id = Column(Integer, primary_key=True)
+    token = Column(String, unique=True, nullable=False, index=True)
+    tariff_id = Column(Integer, ForeignKey('tariffs.id'), nullable=False)
+    
+    is_used = Column(Boolean, default=False)
+    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+    expires_at = Column(DateTime, nullable=False)
+
+    tariff = relationship("Tariff", back_populates="tokens")
+
+    def __repr__(self):
+        return f"<InviteToken(token='{self.token}', tariff_id={self.tariff_id}, is_used={self.is_used})>"
 
 # --- Nota sobre la Creación de Tablas ---
 # La creación de las tablas en la base de datos se gestionará de forma asíncrona
