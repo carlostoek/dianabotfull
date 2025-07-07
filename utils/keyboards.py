@@ -36,3 +36,13 @@ def tariff_confirmation_keyboard() -> InlineKeyboardMarkup:
         [InlineKeyboardButton(text="❌ Cancelar", callback_data="cancel_creation")]
     ]
     return InlineKeyboardMarkup(inline_keyboard=buttons)
+
+def tariffs_keyboard(tariffs: list) -> InlineKeyboardMarkup:
+    """
+    Genera un teclado inline con las tarifas disponibles para seleccionar.
+    """
+    buttons = []
+    for tariff in tariffs:
+        buttons.append([InlineKeyboardButton(text=f"{tariff.name} (${tariff.price:.2f})", callback_data=f"select_tariff_{tariff.id}")])
+    buttons.append([InlineKeyboardButton(text="↩️ Volver al Panel", callback_data="admin_panel")])
+    return InlineKeyboardMarkup(inline_keyboard=buttons)

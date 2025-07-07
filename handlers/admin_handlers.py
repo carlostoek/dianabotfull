@@ -1,12 +1,11 @@
-
 from aiogram import Router, types, F
 from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
 
 from config import ADMIN_IDS
 from utils.states import TariffCreation
-from utils.keyboards import admin_panel_keyboard, tariff_duration_keyboard, tariff_confirmation_keyboard
-from services.subscription_service import create_tariff
+from utils.keyboards import admin_panel_keyboard, tariff_duration_keyboard, tariff_confirmation_keyboard, tariffs_keyboard
+from services.subscription_service import create_tariff, get_all_tariffs, generate_invite_token
 
 # --- Router de Administración ---
 # Este router manejará los comandos exclusivos para los administradores del bot.
@@ -18,11 +17,16 @@ admin_router.callback_query.filter(F.from_user.id.in_(ADMIN_IDS))
 
 # --- Comando /admin ---
 @admin_router.message(Command("admin"))
-async def admin_panel(message: types.Message):
+@admin_router.callback_query(F.data == "admin_panel")
+async def admin_panel(update: types.Message | types.CallbackQuery):
     """
     Muestra el panel de administración principal.
     """
-    await message.answer("Bienvenido al Panel de Administración.", reply_markup=admin_panel_keyboard())
+    if isinstance(update, types.Message):
+        await update.answer("Bienvenido al Panel de Administración.", reply_markup=admin_panel_keyboard())
+    elif isinstance(update, types.CallbackQuery):
+        await update.message.edit_text("Bienvenido al Panel de Administración.", reply_markup=admin_panel_keyboard())
+        await update.answer()
 
 # --- Inicio del Flujo de Creación de Tarifas ---
 @admin_router.callback_query(F.data == "create_tariff")
@@ -100,4 +104,37 @@ async def cancel_creation(callback: types.CallbackQuery, state: FSMContext):
     
     await state.clear()
     await callback.message.edit_text("Creación de tarifa cancelada.")
+    await callback.answer()
+
+# --- Generación de Enlace ---
+@admin_router.callback_query(F.data == "generate_link")
+async def start_generate_link(callback: types.CallbackQuery):
+    tariffs = await get_all_tariffs()
+    if not tariffs:
+        await callback.message.edit_text("No hay tarifas creadas. Por favor, crea una tarifa primero.", reply_markup=admin_panel_keyboard())
+        await callback.answer()
+        return
+    
+    await callback.message.edit_text(
+        "Selecciona la tarifa para la que deseas generar un enlace:",
+        reply_markup=tariffs_keyboard(tariffs)
+    )
+    await callback.answer()
+
+@admin_router.callback_query(F.data.startswith("select_tariff_"))
+async def process_select_tariff(callback: types.CallbackQuery):
+    tariff_id = int(callback.data.split("_")[2])
+    invite_token = await generate_invite_token(tariff_id=tariff_id)
+    
+    # Construir el enlace profundo. El nombre de usuario del bot se obtiene de la API de Telegram.
+    # Es importante que el bot tenga un nombre de usuario para que este enlace funcione.
+    bot_info = await callback.bot.get_me()
+    deep_link = f"https://t.me/{bot_info.username}?start={invite_token.token}"
+    
+    await callback.message.edit_text(
+        f"Aquí tienes el enlace de invitación para la tarifa seleccionada:\n\n`{deep_link}`\n\n" \
+        f"Comparte este enlace con el usuario. Es de un solo uso y expira en 7 días.",
+        parse_mode="Markdown",
+        reply_markup=admin_panel_keyboard()
+    )
     await callback.answer()

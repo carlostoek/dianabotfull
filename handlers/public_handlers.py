@@ -1,10 +1,11 @@
 
-from aiogram import Router, types, F
+from aiogram import Router, types, F, Bot
 from aiogram.filters import CommandStart, ChatMemberUpdatedFilter
 from aiogram.types import ChatMemberUpdated
 
-from config import FREE_CHANNEL_ID
+from config import FREE_CHANNEL_ID, VIP_CHANNEL_ID
 from services.user_service import get_or_create_user, ban_user
+from services.subscription_service import validate_and_use_token
 
 # --- Router Público ---
 # Este router manejará los comandos y mensajes de usuarios no administradores.
@@ -24,19 +25,52 @@ async def handle_start(message: types.Message):
     Manejador para el comando /start.
 
     Saluda al usuario y le da la bienvenida al bot.
-    Este es el primer punto de contacto y una buena forma de verificar
-    que el bot está funcionando correctamente.
+    Si el comando /start incluye un token, intenta validarlo para una suscripción VIP.
     """
-    # Construimos el mensaje de bienvenida.
-    # Usamos el nombre del usuario para personalizar el saludo.
-    welcome_message = (
-        f"¡Hola, {message.from_user.first_name}! 👋\n\n"
-        f"Bienvenido a Diana Bot, tu asistente para la gestión de canales.\n\n"
-        f"Aquí podrás acceder a contenido exclusivo y mucho más."
-    )
-    
-    # Enviamos la respuesta al usuario.
-    await message.answer(welcome_message)
+    # Extraer el argumento del comando /start (si existe)
+    args = message.get_args()
+
+    if args: # Si hay un argumento, asumimos que es un token de invitación
+        user = await get_or_create_user(
+            telegram_id=message.from_user.id,
+            first_name=message.from_user.first_name,
+            last_name=message.from_user.last_name,
+            username=message.from_user.username
+        )
+        subscription = await validate_and_use_token(args, user)
+
+        if subscription:
+            # Generar un enlace de invitación al canal VIP
+            # El bot debe ser administrador del canal VIP y tener el permiso 'Crear enlaces de invitación'
+            try:
+                invite_link = await message.bot.create_chat_invite_link(
+                    chat_id=VIP_CHANNEL_ID,
+                    member_limit=1, # Enlace de un solo uso
+                    expire_date=subscription.end_date # Expira con la suscripción
+                )
+                await message.answer(
+                    f"¡Felicidades, tu suscripción VIP ha sido activada! 🎉\n\n"
+                    f"Aquí tienes tu enlace de acceso al canal VIP: {invite_link.invite_link}\n\n"
+                    f"Este enlace es de un solo uso y expira con tu suscripción el {subscription.end_date.strftime('%d/%m/%Y %H:%M')}."
+                )
+            except Exception as e:
+                await message.answer(
+                    "Hubo un error al generar tu enlace de invitación al canal VIP. "
+                    "Por favor, contacta a un administrador.\n\n" 
+                    f"Error: {e}"
+                )
+        else:
+            await message.answer(
+                "El enlace de invitación no es válido, ha expirado o ya ha sido utilizado. "
+                "Por favor, verifica tu enlace o contacta a un administrador."
+            )
+    else: # Comportamiento normal del comando /start sin argumentos
+        welcome_message = (
+            f"¡Hola, {message.from_user.first_name}! 👋\n\n"
+            f"Bienvenido a Diana Bot, tu asistente para la gestión de canales.\n\n"
+            f"Aquí podrás acceder a contenido exclusivo y mucho más."
+        )
+        await message.answer(welcome_message)
 
 # --- Manejador de Nuevos Miembros ---
 @public_router.chat_member(ChatMemberUpdatedFilter(member_status_changed=(F.status == "member") | (F.status == "administrator")))
