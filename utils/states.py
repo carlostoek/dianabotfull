@@ -30,3 +30,56 @@ class ChannelConfig(StatesGroup):
     waiting_for_free_channel_id = State()
     waiting_for_vip_channel_id = State()
     waiting_for_free_channel_delay = State()
+
+class PostCreation(StatesGroup):
+    """
+    Define los estados para el proceso de creación de una nueva publicación.
+    """
+    waiting_for_channel = State()
+    waiting_for_type = State()
+    waiting_for_text = State()
+    waiting_for_media = State()
+    waiting_for_options = State()
+    waiting_for_button_type = State()
+    waiting_for_button_text = State()
+    waiting_for_button_url = State()
+    waiting_for_button_callback = State()
+    waiting_for_button_row_order = State()
+    waiting_for_button_col_order = State()
+    waiting_for_reaction_emoji = State()
+    waiting_for_schedule_time = State()
+
+class PostEditing(StatesGroup):
+    """
+    Define los estados para el proceso de edición de una publicación existente.
+    """
+    waiting_for_post_selection = State()
+    waiting_for_edit_option = State()
+    waiting_for_new_text = State()
+    waiting_for_new_media = State()
+    waiting_for_new_schedule_time = State()
+    waiting_for_button_edit_selection = State()
+    waiting_for_reaction_edit_selection = State()
+
+class PostButtonCreation(StatesGroup):
+    """
+    Define los estados para la creación de botones dentro de una publicación.
+    """
+    waiting_for_type = State()
+    waiting_for_text = State()
+    waiting_for_url = State()
+    waiting_for_callback = State()
+    waiting_for_row_order = State()
+    waiting_for_button_order = State()
+
+class PostReactionCreation(StatesGroup):
+    """
+    Define los estados para la creación de reacciones dentro de una publicación.
+    """
+    waiting_for_emoji = State()
+
+class PostScheduling(StatesGroup):
+    """
+    Define los estados para la programación de una publicación.
+    """
+    waiting_for_time = State()

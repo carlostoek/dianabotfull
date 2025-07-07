@@ -1,4 +1,3 @@
-
 from sqlalchemy.future import select
 from sqlalchemy.orm import selectinload
 from database.database import async_session
@@ -101,3 +100,24 @@ async def delete_post(post_id: int) -> bool:
             await session.commit()
             return True
         return False
+
+async def get_all_posts() -> list[Post]:
+    """
+    Obtiene todas las publicaciones de la base de datos.
+    """
+    async with async_session() as session:
+        result = await session.execute(select(Post).options(selectinload(Post.buttons), selectinload(Post.reactions)))
+        return result.scalars().all()
+
+async def update_post(post_id: int, **kwargs) -> Post | None:
+    """
+    Actualiza los campos de una publicación existente.
+    """
+    async with async_session() as session:
+        post = await session.get(Post, post_id)
+        if post:
+            for key, value in kwargs.items():
+                setattr(post, key, value)
+            await session.commit()
+            return post
+        return None
