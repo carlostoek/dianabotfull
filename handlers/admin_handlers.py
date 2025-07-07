@@ -3,9 +3,10 @@ from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
 
 from config import ADMIN_IDS
-from utils.states import TariffCreation
-from utils.keyboards import admin_panel_keyboard, tariff_duration_keyboard, tariff_confirmation_keyboard, tariffs_keyboard
-from services.subscription_service import create_tariff, get_all_tariffs, generate_invite_token
+from utils.states import TariffCreation, AddVipManual, RemoveVipManual
+from utils.keyboards import admin_panel_keyboard, tariff_duration_keyboard, tariff_confirmation_keyboard, tariffs_keyboard, tariffs_selection_keyboard, confirm_user_action_keyboard
+from services.subscription_service import create_tariff, get_all_tariffs, generate_invite_token, create_manual_subscription, remove_subscription
+from services.user_service import get_user_by_telegram_id
 
 # --- Router de Administración ---
 # Este router manejará los comandos exclusivos para los administradores del bot.
@@ -94,16 +95,117 @@ async def confirm_creation(callback: types.CallbackQuery, state: FSMContext):
     await state.clear()
     await callback.answer()
 
-# --- Cancelación del Flujo ---
-@admin_router.callback_query(F.data == "cancel_creation")
-async def cancel_creation(callback: types.CallbackQuery, state: FSMContext):
+# --- Cancelación de Operación General ---
+@admin_router.callback_query(F.data == "cancel_operation")
+async def cancel_operation(callback: types.CallbackQuery, state: FSMContext):
     current_state = await state.get_state()
     if current_state is None:
         await callback.answer()
         return
     
     await state.clear()
-    await callback.message.edit_text("Creación de tarifa cancelada.")
+    await callback.message.edit_text("Operación cancelada.", reply_markup=admin_panel_keyboard())
+    await callback.answer()
+
+# --- Añadir VIP Manualmente ---
+@admin_router.callback_query(F.data == "add_vip_manual")
+async def start_add_vip_manual(callback: types.CallbackQuery, state: FSMContext):
+    await callback.message.edit_text("Por favor, envía el ID de Telegram del usuario al que deseas añadir como VIP.")
+    await state.set_state(AddVipManual.waiting_for_user_id)
+    await callback.answer()
+
+@admin_router.message(AddVipManual.waiting_for_user_id)
+async def process_add_vip_user_id(message: types.Message, state: FSMContext):
+    try:
+        user_telegram_id = int(message.text)
+        user = await get_user_by_telegram_id(user_telegram_id)
+        if not user:
+            await message.answer("Usuario no encontrado en la base de datos. Asegúrate de que el usuario haya interactuado con el bot al menos una vez.")
+            return
+        
+        tariffs = await get_all_tariffs()
+        if not tariffs:
+            await message.answer("No hay tarifas creadas. Por favor, crea una tarifa primero.", reply_markup=admin_panel_keyboard())
+            await state.clear()
+            return
+
+        await state.update_data(user_id=user_telegram_id)
+        await message.answer(
+            f"Usuario: {user.first_name} ({user.telegram_id}). Selecciona la tarifa para la suscripción:",
+            reply_markup=tariffs_selection_keyboard(tariffs)
+        )
+        await state.set_state(AddVipManual.waiting_for_tariff_selection)
+    except ValueError:
+        await message.answer("ID de usuario inválido. Por favor, envía un número entero.")
+
+@admin_router.callback_query(AddVipManual.waiting_for_tariff_selection, F.data.startswith("select_manual_tariff_"))
+async def process_add_vip_tariff_selection(callback: types.CallbackQuery, state: FSMContext):
+    tariff_id = int(callback.data.split("_")[3])
+    data = await state.get_data()
+    user_telegram_id = data.get("user_id")
+
+    user = await get_user_by_telegram_id(user_telegram_id)
+    if not user:
+        await callback.message.edit_text("Error: Usuario no encontrado.", reply_markup=admin_panel_keyboard())
+        await state.clear()
+        await callback.answer()
+        return
+
+    subscription = await create_manual_subscription(user.id, tariff_id)
+    if subscription:
+        await callback.message.edit_text(f"✅ Suscripción VIP añadida manualmente para {user.first_name} ({user.telegram_id}). Expira el {subscription.end_date.strftime('%d/%m/%Y %H:%M')}.", reply_markup=admin_panel_keyboard())
+    else:
+        await callback.message.edit_text("Error al añadir la suscripción VIP. El usuario ya podría tener una suscripción activa.", reply_markup=admin_panel_keyboard())
+    
+    await state.clear()
+    await callback.answer()
+
+# --- Eliminar VIP Manualmente ---
+@admin_router.callback_query(F.data == "remove_vip_manual")
+async def start_remove_vip_manual(callback: types.CallbackQuery, state: FSMContext):
+    await callback.message.edit_text("Por favor, envía el ID de Telegram del usuario al que deseas eliminar como VIP.")
+    await state.set_state(RemoveVipManual.waiting_for_user_id)
+    await callback.answer()
+
+@admin_router.message(RemoveVipManual.waiting_for_user_id)
+async def process_remove_vip_user_id(message: types.Message, state: FSMContext):
+    try:
+        user_telegram_id = int(message.text)
+        user = await get_user_by_telegram_id(user_telegram_id)
+        if not user:
+            await message.answer("Usuario no encontrado en la base de datos.")
+            return
+        
+        # Confirmación antes de eliminar
+        await message.answer(
+            f"¿Estás seguro de que deseas eliminar la suscripción VIP de {user.first_name} ({user.telegram_id})?",
+            reply_markup=confirm_user_action_keyboard(user_telegram_id, "remove_vip")
+        )
+        await state.clear() # Limpiamos el estado después de pedir confirmación
+    except ValueError:
+        await message.answer("ID de usuario inválido. Por favor, envía un número entero.")
+
+@admin_router.callback_query(F.data.startswith("confirm_remove_vip_"))
+async def confirm_remove_vip(callback: types.CallbackQuery, state: FSMContext):
+    user_telegram_id = int(callback.data.split("_")[3])
+    user = await get_user_by_telegram_id(user_telegram_id)
+
+    if not user:
+        await callback.message.edit_text("Error: Usuario no encontrado.", reply_markup=admin_panel_keyboard())
+        await callback.answer()
+        return
+
+    success = await remove_subscription(user.id)
+    if success:
+        await callback.message.edit_text(f"✅ Suscripción VIP eliminada para {user.first_name} ({user.telegram_id}).", reply_markup=admin_panel_keyboard())
+        # Opcional: Expulsar al usuario del canal VIP si estaba dentro
+        # try:
+        #     await callback.bot.ban_chat_member(chat_id=VIP_CHANNEL_ID, user_id=user.telegram_id)
+        # except Exception as e:
+        #     logger.error(f"Error al expulsar a {user.telegram_id} del canal VIP: {e}")
+    else:
+        await callback.message.edit_text("Error al eliminar la suscripción VIP o el usuario no tenía una suscripción activa.", reply_markup=admin_panel_keyboard())
+    
     await callback.answer()
 
 # --- Generación de Enlace ---

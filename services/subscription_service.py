@@ -1,4 +1,3 @@
-
 import uuid
 import datetime
 from sqlalchemy.future import select
@@ -78,3 +77,53 @@ async def validate_and_use_token(token_str: str, user: User) -> Subscription | N
         session.add(new_subscription)
         await session.commit()
         return new_subscription
+
+async def create_manual_subscription(user_db_id: int, tariff_id: int) -> Subscription | None:
+    """
+    Crea una suscripción VIP manualmente para un usuario existente.
+    """
+    async with async_session() as session:
+        # Verificar si el usuario ya tiene una suscripción activa
+        existing_subscription = await session.execute(
+            select(Subscription).filter(
+                Subscription.user_id == user_db_id,
+                Subscription.is_active == True
+            )
+        )
+        if existing_subscription.scalars().first():
+            return None # El usuario ya tiene una suscripción activa
+
+        tariff = await session.get(Tariff, tariff_id)
+        if not tariff:
+            return None # Tarifa no encontrada
+
+        end_date = datetime.datetime.utcnow() + datetime.timedelta(days=tariff.duration_days)
+
+        new_subscription = Subscription(
+            user_id=user_db_id,
+            start_date=datetime.datetime.utcnow(),
+            end_date=end_date,
+            is_active=True
+        )
+        session.add(new_subscription)
+        await session.commit()
+        return new_subscription
+
+async def remove_subscription(user_db_id: int) -> bool:
+    """
+    Elimina la suscripción VIP activa de un usuario.
+    """
+    async with async_session() as session:
+        subscription = await session.execute(
+            select(Subscription).filter(
+                Subscription.user_id == user_db_id,
+                Subscription.is_active == True
+            )
+        )
+        subscription = subscription.scalars().first()
+
+        if subscription:
+            subscription.is_active = False
+            await session.commit()
+            return True
+        return False

@@ -1,4 +1,3 @@
-
 from sqlalchemy.future import select
 from database.database import async_session
 from database.models import User
@@ -50,3 +49,11 @@ async def ban_user(telegram_id: int) -> User:
             await session.commit()
         
         return user
+
+async def get_user_by_telegram_id(telegram_id: int) -> User | None:
+    """
+    Obtiene un usuario de la base de datos por su ID de Telegram.
+    """
+    async with async_session() as session:
+        result = await session.execute(select(User).filter(User.telegram_id == telegram_id))
+        return result.scalars().first()

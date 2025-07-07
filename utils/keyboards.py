@@ -9,6 +9,8 @@ def admin_panel_keyboard() -> InlineKeyboardMarkup:
     buttons = [
         [InlineKeyboardButton(text="📊 Crear Tarifa", callback_data="create_tariff")],
         [InlineKeyboardButton(text="🔗 Generar Enlace", callback_data="generate_link")],
+        [InlineKeyboardButton(text="➕ Añadir VIP Manual", callback_data="add_vip_manual")],
+        [InlineKeyboardButton(text="➖ Eliminar VIP Manual", callback_data="remove_vip_manual")],
         # [InlineKeyboardButton(text="📈 Ver Estadísticas", callback_data="view_stats")], # Ejemplo para futura expansión
     ]
     return InlineKeyboardMarkup(inline_keyboard=buttons)
@@ -45,4 +47,25 @@ def tariffs_keyboard(tariffs: list) -> InlineKeyboardMarkup:
     for tariff in tariffs:
         buttons.append([InlineKeyboardButton(text=f"{tariff.name} (${tariff.price:.2f})", callback_data=f"select_tariff_{tariff.id}")])
     buttons.append([InlineKeyboardButton(text="↩️ Volver al Panel", callback_data="admin_panel")])
+    return InlineKeyboardMarkup(inline_keyboard=buttons)
+
+def tariffs_selection_keyboard(tariffs: list) -> InlineKeyboardMarkup:
+    """
+    Genera un teclado inline con las tarifas disponibles para seleccionar
+    en el contexto de añadir un VIP manualmente.
+    """
+    buttons = []
+    for tariff in tariffs:
+        buttons.append([InlineKeyboardButton(text=f"{tariff.name} ({tariff.duration_days} días)", callback_data=f"select_manual_tariff_{tariff.id}")])
+    buttons.append([InlineKeyboardButton(text="❌ Cancelar", callback_data="cancel_operation")])
+    return InlineKeyboardMarkup(inline_keyboard=buttons)
+
+def confirm_user_action_keyboard(user_id: int, action: str) -> InlineKeyboardMarkup:
+    """
+    Genera un teclado para confirmar una acción sobre un usuario (ej. añadir/eliminar VIP).
+    """
+    buttons = [
+        [InlineKeyboardButton(text="✅ Confirmar", callback_data=f"confirm_{action}_{user_id}")],
+        [InlineKeyboardButton(text="❌ Cancelar", callback_data="cancel_operation")]
+    ]
     return InlineKeyboardMarkup(inline_keyboard=buttons)
