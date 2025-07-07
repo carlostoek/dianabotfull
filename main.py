@@ -46,7 +46,7 @@ async def main():
     # El `Dispatcher` es el responsable de procesar las actualizaciones (mensajes, etc.)
     # y distribuirlas a los manejadores (handlers) correspondientes.
     dp = Dispatcher(storage=storage)
-    dp.allowed_updates = ["message", "chat_member"]
+    dp.allowed_updates = ["message", "chat_member", "chat_join_request"]
 
     # --- Registro de Routers ---
     # Aquí es donde conectamos los diferentes módulos de manejadores al dispatcher.
@@ -71,6 +71,12 @@ async def main():
         IntervalTrigger(hours=1), 
         kwargs={'bot': bot}, 
         id='expire_subscriptions'
+    )
+    scheduler.add_job(
+        process_pending_join_requests,
+        IntervalTrigger(minutes=1), # Ejecutar más frecuentemente para procesar solicitudes
+        kwargs={'bot': bot},
+        id='process_join_requests'
     )
     
     scheduler.start()

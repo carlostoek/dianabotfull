@@ -20,6 +20,10 @@ DATABASE_URL = "sqlite+aiosqlite:///dianabot.db"
 FREE_CHANNEL_ID = os.getenv("FREE_CHANNEL_ID", -1001234567890)  # Reemplazar con el ID real
 VIP_CHANNEL_ID = os.getenv("VIP_CHANNEL_ID", -1001234567891)    # Reemplazar con el ID real
 
+# Delay en minutos antes de aceptar automáticamente una solicitud de unión al canal gratuito.
+# Durante este tiempo, el bot enviará mensajes de promoción de redes sociales.
+FREE_CHANNEL_JOIN_DELAY_MINUTES = int(os.getenv("FREE_CHANNEL_JOIN_DELAY_MINUTES", 5)) # 5 minutos por defecto
+
 # --- Otras Configuraciones ---
 # Lista de IDs de los administradores del bot.
 # Pueden ejecutar comandos especiales y acceder a paneles de administración.

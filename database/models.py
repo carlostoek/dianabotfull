@@ -75,6 +75,7 @@ class Channel(Base):
     name = Column(String, unique=True, nullable=False)  # Ej: "free_channel", "vip_channel"
     channel_id = Column(BigInteger, unique=True, nullable=False)
     access_type = Column(String, default='free') # Tipos: 'free', 'request', 'restricted'
+    join_delay_minutes = Column(Integer, default=0) # Delay en minutos para solicitudes de unión (solo para 'request')
 
     def __repr__(self):
         return f"<Channel(name='{self.name}', channel_id={self.channel_id})>"
@@ -120,6 +121,26 @@ class InviteToken(Base):
 
     def __repr__(self):
         return f"<InviteToken(token='{self.token}', tariff_id={self.tariff_id}, is_used={self.is_used})>"
+
+class JoinRequest(Base):
+    """
+    Representa una solicitud pendiente de unión a un canal.
+
+    Utilizado para gestionar el delay configurable antes de aceptar
+    automáticamente a un usuario en un canal.
+    """
+    __tablename__ = 'join_requests'
+
+    id = Column(Integer, primary_key=True)
+    user_id = Column(BigInteger, nullable=False) # Telegram ID del usuario
+    chat_id = Column(BigInteger, nullable=False) # ID del canal al que solicita unirse
+    request_date = Column(DateTime, default=datetime.datetime.utcnow)
+    accept_date = Column(DateTime, nullable=True) # Fecha en la que debe ser aceptado
+    is_accepted = Column(Boolean, default=False)
+    is_processed = Column(Boolean, default=False)
+
+    def __repr__(self):
+        return f"<JoinRequest(user_id={self.user_id}, chat_id={self.chat_id}, accept_date={self.accept_date})>"
 
 # --- Nota sobre la Creación de Tablas ---
 # La creación de las tablas en la base de datos se gestionará de forma asíncrona

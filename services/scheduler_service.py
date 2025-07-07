@@ -6,7 +6,8 @@ from sqlalchemy.future import select
 
 from database.database import async_session
 from database.models import Subscription, User
-from config import VIP_CHANNEL_ID
+from config import VIP_CHANNEL_ID, FREE_CHANNEL_ID
+from services.channel_service import get_pending_join_requests, mark_join_request_processed
 
 logger = logging.getLogger(__name__)
 
@@ -80,3 +81,24 @@ async def check_and_expire_subscriptions(bot: Bot):
                 )
             except Exception as e:
                 logger.error(f"Error al procesar expiración para {user.telegram_id}: {e}")
+
+async def process_pending_join_requests(bot: Bot):
+    """
+    Procesa las solicitudes de unión pendientes al canal gratuito.
+
+    Acepta automáticamente las solicitudes cuyo delay ha expirado.
+    """
+    logger.info("Ejecutando tarea: process_pending_join_requests")
+    async with async_session() as session:
+        requests_to_process = await get_pending_join_requests()
+
+        for req in requests_to_process:
+            try:
+                # Intentar aceptar la solicitud
+                await bot.approve_chat_join_request(chat_id=req.chat_id, user_id=req.user_id)
+                await mark_join_request_processed(req.id, True)
+                logger.info(f"Solicitud de unión de {req.user_id} al canal {req.chat_id} aceptada automáticamente.")
+            except Exception as e:
+                # Si falla (ej. usuario canceló la solicitud), marcar como procesada pero no aceptada
+                await mark_join_request_processed(req.id, False)
+                logger.error(f"Error al aceptar solicitud de unión de {req.user_id} al canal {req.chat_id}: {e}")
