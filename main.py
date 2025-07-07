@@ -43,6 +43,7 @@ async def main():
     # El `Dispatcher` es el responsable de procesar las actualizaciones (mensajes, etc.)
     # y distribuirlas a los manejadores (handlers) correspondientes.
     dp = Dispatcher(storage=storage)
+    dp.allowed_updates = ["message", "chat_member"]
 
     # --- Registro de Routers ---
     # Aquí es donde conectamos los diferentes módulos de manejadores al dispatcher.
