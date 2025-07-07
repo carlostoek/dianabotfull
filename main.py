@@ -4,6 +4,8 @@ import logging
 
 from aiogram import Bot, Dispatcher
 from aiogram.fsm.storage.memory import MemoryStorage
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
+from apscheduler.triggers.interval import IntervalTrigger
 
 from config import BOT_TOKEN
 from database.database import create_tables
@@ -45,6 +47,50 @@ async def main():
     # y distribuirlas a los manejadores (handlers) correspondientes.
     dp = Dispatcher(storage=storage)
     dp.allowed_updates = ["message", "chat_member"]
+
+    # --- Registro de Routers ---
+    # Aquí es donde conectamos los diferentes módulos de manejadores al dispatcher.
+    dp.include_router(public_router)
+    dp.include_router(admin_router)
+
+    # --- Configuración y Arranque del Scheduler ---
+    # El scheduler se encargará de ejecutar tareas programadas como la verificación
+    # de expiración de suscripciones y el envío de recordatorios.
+    scheduler = AsyncIOScheduler()
+    
+    # Añadir trabajos al scheduler
+    # Se ejecutan cada 1 hora (puedes ajustar la frecuencia según sea necesario)
+    scheduler.add_job(
+        check_and_notify_expirations, 
+        IntervalTrigger(hours=1), 
+        kwargs={'bot': bot}, 
+        id='notify_expirations'
+    )
+    scheduler.add_job(
+        check_and_expire_subscriptions, 
+        IntervalTrigger(hours=1), 
+        kwargs={'bot': bot}, 
+        id='expire_subscriptions'
+    )
+    
+    scheduler.start()
+    logger.info("Scheduler iniciado.")
+
+    # --- Arranque del Bot ---
+    # `bot.delete_webhook` asegura que no haya un webhook configurado previamente.
+    # `dp.start_polling` inicia el proceso de sondeo largo (long polling) para
+    # recibir actualizaciones de Telegram.
+    try:
+        await bot.delete_webhook(drop_pending_updates=True)
+        logger.info("Bot iniciado y escuchando actualizaciones...")
+        await dp.start_polling(bot)
+    except Exception as e:
+        logger.error(f"Ocurrió un error durante la ejecución del bot: {e}")
+    finally:
+        # Cierre de la sesión del bot al finalizar y apagado del scheduler.
+        scheduler.shutdown()
+        await bot.session.close()
+        logger.info("El bot se ha detenido.")"message", "chat_member"]
 
     # --- Registro de Routers ---
     # Aquí es donde conectamos los diferentes módulos de manejadores al dispatcher.
