@@ -8,6 +8,7 @@ from database.database import async_session
 from database.models import Subscription, User
 from config import VIP_CHANNEL_ID, FREE_CHANNEL_ID
 from services.channel_service import get_pending_join_requests, mark_join_request_processed
+from services.post_service import get_scheduled_posts_to_send, mark_post_as_sent
 
 logger = logging.getLogger(__name__)
 
@@ -102,3 +103,50 @@ async def process_pending_join_requests(bot: Bot):
                 # Si falla (ej. usuario canceló la solicitud), marcar como procesada pero no aceptada
                 await mark_join_request_processed(req.id, False)
                 logger.error(f"Error al aceptar solicitud de unión de {req.user_id} al canal {req.chat_id}: {e}")
+
+async def send_scheduled_posts(bot: Bot):
+    """
+    Envía las publicaciones programadas que ya han alcanzado su hora de envío.
+    """
+    logger.info("Ejecutando tarea: send_scheduled_posts")
+    async with async_session() as session:
+        posts_to_send = await get_scheduled_posts_to_send()
+
+        for post in posts_to_send:
+            try:
+                # Construir el teclado inline si hay botones
+                reply_markup = None
+                if post.buttons:
+                    keyboard_buttons = []
+                    current_row = []
+                    for btn in sorted(post.buttons, key=lambda x: (x.row_order, x.button_order)):
+                        if btn.row_order != (current_row[0].row_order if current_row else btn.row_order):
+                            keyboard_buttons.append(current_row)
+                            current_row = []
+                        
+                        if btn.url:
+                            current_row.append(types.InlineKeyboardButton(text=btn.text, url=btn.url))
+                        elif btn.callback_data:
+                            current_row.append(types.InlineKeyboardButton(text=btn.text, callback_data=btn.callback_data))
+                    if current_row: # Add the last row
+                        keyboard_buttons.append(current_row)
+                    reply_markup = types.InlineKeyboardMarkup(inline_keyboard=keyboard_buttons)
+
+                # Enviar el mensaje
+                if post.media_type == 'photo':
+                    await bot.send_photo(chat_id=post.channel_id, photo=post.media_file_id, caption=post.message_text, protect_content=post.is_protected, reply_markup=reply_markup)
+                elif post.media_type == 'video':
+                    await bot.send_video(chat_id=post.channel_id, video=post.media_file_id, caption=post.message_text, protect_content=post.is_protected, reply_markup=reply_markup)
+                elif post.media_type == 'document':
+                    await bot.send_document(chat_id=post.channel_id, document=post.media_file_id, caption=post.message_text, protect_content=post.is_protected, reply_markup=reply_markup)
+                elif post.media_type == 'sticker':
+                    await bot.send_sticker(chat_id=post.channel_id, sticker=post.media_file_id, protect_content=post.is_protected, reply_markup=reply_markup)
+                elif post.media_type == 'animation':
+                    await bot.send_animation(chat_id=post.channel_id, animation=post.media_file_id, caption=post.message_text, protect_content=post.is_protected, reply_markup=reply_markup)
+                else: # Solo texto
+                    await bot.send_message(chat_id=post.channel_id, text=post.message_text, protect_content=post.is_protected, reply_markup=reply_markup)
+                
+                await mark_post_as_sent(post.id)
+                logger.info(f"Publicación {post.id} enviada al canal {post.channel_id}.")
+            except Exception as e:
+                logger.error(f"Error al enviar publicación {post.id} al canal {post.channel_id}: {e}")

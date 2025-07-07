@@ -142,6 +142,65 @@ class JoinRequest(Base):
     def __repr__(self):
         return f"<JoinRequest(user_id={self.user_id}, chat_id={self.chat_id}, accept_date={self.accept_date})>"
 
+class Post(Base):
+    """
+    Representa una publicación que el bot enviará a un canal.
+
+    Puede incluir texto, medios, botones inline, reacciones y ser programada.
+    """
+    __tablename__ = 'posts'
+
+    id = Column(Integer, primary_key=True)
+    channel_id = Column(BigInteger, nullable=False)  # ID del canal de Telegram
+    message_text = Column(String, nullable=True)
+    media_type = Column(String, nullable=True)  # 'photo', 'video', 'document', 'sticker', 'animation'
+    media_file_id = Column(String, nullable=True) # file_id de Telegram
+    is_protected = Column(Boolean, default=False) # Si el mensaje no puede ser reenviado
+    scheduled_time = Column(DateTime, nullable=True) # Para publicaciones programadas
+    is_sent = Column(Boolean, default=False)
+    created_at = Column(DateTime, server_default=func.now())
+    updated_at = Column(DateTime, onupdate=func.now())
+
+    buttons = relationship("PostButton", back_populates="post", cascade="all, delete-orphan")
+    reactions = relationship("PostReaction", back_populates="post", cascade="all, delete-orphan")
+
+    def __repr__(self):
+        return f"<Post(id={self.id}, channel_id={self.channel_id}, scheduled_time={self.scheduled_time}, is_sent={self.is_sent})>"
+
+class PostButton(Base):
+    """
+    Representa un botón inline asociado a una publicación.
+    """
+    __tablename__ = 'post_buttons'
+
+    id = Column(Integer, primary_key=True)
+    post_id = Column(Integer, ForeignKey('posts.id'), nullable=False)
+    text = Column(String, nullable=False)
+    url = Column(String, nullable=True)
+    callback_data = Column(String, nullable=True)
+    row_order = Column(Integer, nullable=False) # Orden de la fila del botón
+    button_order = Column(Integer, nullable=False) # Orden del botón dentro de la fila
+
+    post = relationship("Post", back_populates="buttons")
+
+    def __repr__(self):
+        return f"<PostButton(id={self.id}, text='{self.text}', post_id={self.post_id})>"
+
+class PostReaction(Base):
+    """
+    Representa una reacción personalizada asociada a una publicación.
+    """
+    __tablename__ = 'post_reactions'
+
+    id = Column(Integer, primary_key=True)
+    post_id = Column(Integer, ForeignKey('posts.id'), nullable=False)
+    emoji = Column(String, nullable=False) # Emoji de la reacción
+
+    post = relationship("Post", back_populates="reactions")
+
+    def __repr__(self):
+        return f"<PostReaction(id={self.id}, emoji='{self.emoji}', post_id={self.post_id})>"
+
 # --- Nota sobre la Creación de Tablas ---
 # La creación de las tablas en la base de datos se gestionará de forma asíncrona
 # en el script principal (main.py) al iniciar el bot para asegurar que existan
