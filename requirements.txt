@@ -2,4 +2,8 @@ aiogram==3.7.0
 sqlalchemy[asyncio]==2.0.30
 aiosqlite==0.20.0
 APScheduler==3.10.4
+<<<<<<< HEAD
 python-dotenv
+=======
+python-dotenv
+>>>>>>> 55c9bef3f67a7c40ab48e359f664a33f9ec199d4
