@@ -12,7 +12,7 @@ from config import BOT_TOKEN
 from database.database import create_tables
 from handlers.public_handlers import public_router
 from handlers.admin_handlers import admin_router
-from services.scheduler_service import check_and_notify_expirations, check_and_expire_subscriptions, process_pending_join_requests, send_scheduled_posts
+from services.scheduler_service import daily_subscription_check, process_pending_join_requests, send_scheduled_posts
 
 # --- Configuración del Logging ---
 # Configura el sistema de logging para mostrar información útil durante la ejecución.
