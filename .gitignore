@@ -1,9 +1,0 @@
-# Archivos de entorno
-.env
-
-# Directorios de caché de Python
-__pycache__/
-*.pyc
-
-# Base de datos local
-dianabot.db

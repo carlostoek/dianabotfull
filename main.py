@@ -2,113 +2,90 @@
 import asyncio
 import logging
 
-from aiogram import Bot, Dispatcher
-from aiogram.client.bot import DefaultBotProperties
-from aiogram.fsm.storage.memory import MemoryStorage
-from apscheduler.schedulers.asyncio import AsyncIOScheduler
-from apscheduler.triggers.interval import IntervalTrigger
+from src.core.config import settings, setup_logging
+from src.core.event_bus import EventBus
+from src.database.connection import DatabaseManager
+from src.models.user import User, UserRole
 
-from config import BOT_TOKEN
-from database.database import create_tables
-from handlers.public_handlers import public_router
-from handlers.admin_handlers import admin_router
-from services.scheduler_service import daily_subscription_check, process_pending_join_requests, send_scheduled_posts
-
-# --- Configuración del Logging ---
-# Configura el sistema de logging para mostrar información útil durante la ejecución.
-# Esto es crucial para la depuración y el monitoreo del bot en producción.
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-)
+# Initialize logger
+setup_logging()
 logger = logging.getLogger(__name__)
 
+# --- Event Handlers ---
+async def on_user_created(user: User):
+    """Event handler for when a new user is created."""
+    logger.info(f"EVENT [user_created]: A new user has been registered: {user.username} (ID: {user.id})")
+
+async def on_vip_user_created(user: User):
+    """Event handler specifically for new VIP users."""
+    if user.role == UserRole.VIP:
+        logger.info(f"EVENT [vip_user_created]: A new VIP user '{user.username}' just joined! Give them a welcome bonus.")
+
+# --- Main Application Logic ---
+class Application:
+    """Main application class to orchestrate components."""
+    def __init__(self):
+        # Dependency Injection: Create instances of services
+        self.settings = settings
+        self.event_bus = EventBus()
+        self.db_manager = DatabaseManager(self.settings.DATABASE_URL)
+
+    def setup_event_listeners(self):
+        """Subscribe event handlers to the event bus."""
+        self.event_bus.subscribe("user_created", on_user_created)
+        self.event_bus.subscribe("user_created", on_vip_user_created)
+        logger.info("Event listeners have been set up.")
+
+    async def run(self):
+        """Main execution flow."""
+        logger.info("Application starting up...")
+        await self.db_manager.connect()
+        await self.db_manager.init_db()
+        self.setup_event_listeners()
+
+        # --- DEMO: Create and retrieve a user ---
+        try:
+            async with self.db_manager.get_connection() as conn:
+                # Clean up previous demo user if exists
+                await conn.execute("DELETE FROM users WHERE username IN ('demo_user', 'vip_user')")
+
+                # 1. Create a new standard user
+                logger.info("--- Creating a new standard user ---")
+                std_user_row = await conn.fetchrow(
+                    "INSERT INTO users (username, role, points) VALUES ($1, $2, $3) RETURNING id, username, role, points",
+                    'demo_user', UserRole.FREE.value, 50
+                )
+                std_user = User.model_validate(dict(std_user_row))
+                await self.event_bus.publish("user_created", user=std_user)
+
+                # 2. Create a new VIP user
+                logger.info("--- Creating a new VIP user ---")
+                vip_user_row = await conn.fetchrow(
+                    "INSERT INTO users (username, role, points) VALUES ($1, $2, $3) RETURNING id, username, role, points",
+                    'vip_user', UserRole.VIP.value, 1000
+                )
+                vip_user = User.model_validate(dict(vip_user_row))
+                await self.event_bus.publish("user_created", user=vip_user)
+
+
+                # 3. Retrieve a user
+                logger.info("--- Retrieving a user from DB ---")
+                retrieved_row = await conn.fetchrow("SELECT * FROM users WHERE username = $1", 'demo_user')
+                if retrieved_row:
+                    retrieved_user = User.model_validate(dict(retrieved_row))
+                    logger.info(f"Successfully retrieved user: {retrieved_user.model_dump_json(indent=2)}")
+
+        except Exception as e:
+            logger.error(f"An error occurred during the demo execution: {e}", exc_info=True)
+        finally:
+            logger.info("Application shutting down...")
+            await self.db_manager.disconnect()
+
+
 async def main():
-    """
-    Función principal que inicializa y ejecuta el bot.
-    """
-    logger.info("Iniciando el bot...")
+    """Asynchronous entry point."""
+    app = Application()
+    await app.run()
 
-    # --- Creación de Tablas ---
-    # Llama a la función para asegurar que todas las tablas de la base de datos
-    # estén creadas antes de que el bot comience a operar.
-    logger.info("Creando tablas de la base de datos...")
-    await create_tables()
-    logger.info("Tablas creadas exitosamente.")
-
-    # --- Inicialización del Bot y Dispatcher ---
-    # `MemoryStorage` se usa para almacenar datos de estado finito (FSM). Es simple
-    # y útil para empezar, pero para producción se podría considerar un almacenamiento
-    # persistente como Redis.
-    storage = MemoryStorage()
-    
-    # El objeto `Bot` es la interfaz principal para la API de Telegram.
-    bot = Bot(token=BOT_TOKEN, default=DefaultBotProperties(parse_mode="HTML"))
-    
-    # El `Dispatcher` es el responsable de procesar las actualizaciones (mensajes, etc.)
-    # y distribuirlas a los manejadores (handlers) correspondientes.
-    dp = Dispatcher(storage=storage)
-    dp.allowed_updates = ["message", "chat_member", "chat_join_request"]
-
-    # --- Registro de Routers ---
-    # Aquí es donde conectamos los diferentes módulos de manejadores al dispatcher.
-    dp.include_router(public_router)
-    dp.include_router(admin_router)
-
-    # --- Configuración y Arranque del Scheduler ---
-    # El scheduler se encargará de ejecutar tareas programadas.
-    scheduler = AsyncIOScheduler(timezone="UTC")
-    
-    # Tarea diaria para notificar y gestionar expiraciones de suscripciones.
-    # Se ejecuta todos los días a las 09:00 UTC.
-    scheduler.add_job(
-        daily_subscription_check,
-        trigger='cron',
-        hour=9,
-        minute=0,
-        kwargs={'bot': bot},
-        id='daily_subscription_check'
-    )
-
-    # Tareas frecuentes para solicitudes de unión y publicaciones programadas.
-    scheduler.add_job(
-        process_pending_join_requests,
-        IntervalTrigger(minutes=1),
-        kwargs={'bot': bot},
-        id='process_join_requests'
-    )
-    scheduler.add_job(
-        send_scheduled_posts,
-        IntervalTrigger(minutes=1),
-        kwargs={'bot': bot},
-        id='send_scheduled_posts'
-    )
-    
-    scheduler.start()
-    logger.info("Scheduler iniciado.")
-
-    # --- Arranque del Bot ---
-    # `bot.delete_webhook` asegura que no haya un webhook configurado previamente.
-    # `dp.start_polling` inicia el proceso de sondeo largo (long polling) para
-    # recibir actualizaciones de Telegram.
-    try:
-        await bot.delete_webhook(drop_pending_updates=True)
-        logger.info("Bot iniciado y escuchando actualizaciones...")
-        await dp.start_polling(bot)
-    except Exception as e:
-        logger.error(f"Ocurrió un error durante la ejecución del bot: {e}")
-    finally:
-        # Cierre de la sesión del bot al finalizar y apagado del scheduler.
-        scheduler.shutdown()
-        await bot.session.close()
-        logger.info("El bot se ha detenido.")
-
-    
-
-if __name__ == '__main__':
-    # Punto de entrada para ejecutar el bot.
-    # `asyncio.run` inicia el bucle de eventos de asyncio y ejecuta la corutina `main`.
-    try:
-        asyncio.run(main())
-    except (KeyboardInterrupt, SystemExit):
-        logger.info("El bot ha sido detenido manualmente.")
+if __name__ == "__main__":
+    asyncio.run(main())
