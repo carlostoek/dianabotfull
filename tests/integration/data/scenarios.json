@@ -1,0 +1,28 @@
+{
+    "reaction_to_points": {
+        "description": "Usuario reacciona → gana 5 puntos",
+        "setup": {
+            "users": [
+                {"id": 1, "points": 0}
+            ]
+        },
+        "steps": [
+            {
+                "type": "publish_event",
+                "event": "reaction_added",
+                "data": {
+                    "user_id": 1,
+                    "emoji": "❤️",
+                    "channel_id": 123
+                }
+            }
+        ],
+        "assertions": [
+            {
+                "name": "points_updated",
+                "type": "db_value",
+                "check": "user.points == 5"
+            }
+        ]
+    }
+}

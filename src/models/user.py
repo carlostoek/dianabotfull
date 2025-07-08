@@ -7,6 +7,7 @@ class UserRole(str, Enum):
     """Enumeration for user roles."""
     FREE = "free"
     VIP = "vip"
+    ADMIN = "admin"
 
 class User(BaseModel):
     """

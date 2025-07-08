@@ -2,3 +2,4 @@ asyncpg
 python-dotenv
 pydantic
 pydantic-settings
+schedule

@@ -1,6 +1,7 @@
 
 import asyncio
 import logging
+import threading
 from datetime import datetime
 
 from src.core.config import settings, setup_logging
@@ -19,6 +20,11 @@ from src.services.content_service import ContentService
 from src.services.user_service import UserService
 from src.services.story_service import StoryService
 
+# Import Scheduling System
+from src.core.scheduler_system import SchedulerSystem
+from src.services.vip_checker import VIPChecker
+from src.services.daily_reset import DailyReset
+
 # Import Admin Services
 from src.admin.dashboard_service import DashboardService
 from src.admin.mission_designer import MissionDesigner
@@ -26,6 +32,12 @@ from src.admin.content_planner import ContentPlanner
 
 # Import Integration Core
 from src.core.integration_hub import IntegrationHub, EventLogger
+
+# --- Import Security Layer ---
+from src.security.anti_abuse_system import anti_abuse_system
+from src.security.auth_middleware import auth_middleware
+from src.security.content_guard import content_guard
+
 
 # Initialize logger
 setup_logging()
@@ -60,6 +72,11 @@ class Application:
         self.level_service = LevelService(self.event_bus, self.settings)
         self.mission_service = MissionService(self.event_bus)
         self.achievements_service = AchievementsService(self.event_bus)
+
+        # Scheduling System
+        self.scheduler = SchedulerSystem()
+        self.vip_checker = VIPChecker()
+        self.daily_reset = DailyReset()
 
     def setup_integration_hub(self):
         """Configure the IntegrationHub and register all event handlers for the new flows."""
@@ -114,28 +131,16 @@ class Application:
 
     async def on_points_earned(self, user_id: int, amount: int, new_balance: int):
         logger.info(f"EVENT [points_earned]: User {user_id} earned {amount} points. New balance: {new_balance}")
-        # Check for level up after points are earned
-        # Note: This requires fetching the user's old points, which is not directly available here.
-        # For a real system, you'd fetch the user from DB or pass the user object directly.
-        # For this demo, we'll assume the user object is updated and passed around.
-        # For now, we'll just call check_level_up with dummy old_points for demonstration.
-        # In a real scenario, the user object would be passed to add_points and deduct_points.
-        # And the level service would be called with the user's old and new points.
-        # For simplicity, let's assume we have access to the user object here.
-        # This is a simplification for the demo.
         user = User(id=user_id, username="demo", points=new_balance) # Dummy user for demo
         await self.level_service.check_level_up(user.id, user.points - amount, user.points)
 
     async def on_level_up(self, user_id: int, new_level: str, old_level: str):
         logger.info(f"EVENT [level_up]: User {user_id} leveled up from {old_level} to {new_level}!")
-        # Unlock achievement for reaching Maestro level
         if new_level == "Maestro":
             await self.achievements_service.unlock_achievement(user_id, "level_maestro")
 
     async def on_mission_completed(self, user_id: int, mission_id: int, reward_points: int):
         logger.info(f"EVENT [mission_completed]: User {user_id} completed mission {mission_id} and earned {reward_points} points.")
-        # In a real app, you'd fetch the user and add points.
-        # For demo, we'll just log.
 
     async def on_achievement_unlocked(self, user_id: int, achievement_id: int, achievement_name: str):
         logger.info(f"EVENT [achievement_unlocked]: User {user_id} unlocked achievement: {achievement_name} (ID: {achievement_id})")
@@ -146,202 +151,90 @@ class Application:
     async def on_vip_access_granted(self, user_id: int, expiration_date: datetime):
         logger.info(f"EVENT [vip_access_granted]: User {user_id} granted VIP access until {expiration_date}.")
 
+    def test_scheduler_job(self):
+        logger.info("Scheduler test job executed!")
+
     async def run(self):
         """Main execution flow."""
         logger.info("Application starting up...")
-        self.db_connected = False
-        try:
-            await self.db_manager.connect()
-            await self.db_manager.init_db()
-            self.db_connected = True
-            logger.info("Database connection successful.")
-        except Exception as e:
-            logger.warning(f"Could not connect to the database. Running without database features. Error: {e}")
-            # Optionally, you might want to disable certain features or services here
-            self.db_connected = False
         
         self.setup_event_listeners()
         self.setup_integration_hub()
 
-        # --- DEMO: Create and retrieve a user and test gamification services ---
-        if self.db_connected:
-            try:
-                async with self.db_manager.get_connection() as conn:
-                    # Clean up previous demo user if exists
-                    await conn.execute("DELETE FROM users WHERE username IN ('demo_user', 'vip_user', 'gami_user')")
+        # Schedule jobs
+        self.scheduler.add_job("daily", self.daily_reset.reset_daily_missions)
+        self.scheduler.add_job("hourly", self.vip_checker.revoke_expired_vip)
+        self.scheduler.add_job("every_minute", self.test_scheduler_job)
 
-                    # 1. Create a new standard user
-                    logger.info("--- Creating a new standard user ---")
-                    std_user_row = await conn.fetchrow(
-                        "INSERT INTO users (username, role, points) VALUES ($1, $2, $3) RETURNING id, username, role, points",
-                        'demo_user', UserRole.FREE.value, 50
-                    )
-                    std_user = User.model_validate(dict(std_user_row))
-                    await self.event_bus.publish("user_created", user=std_user)
+        # Start the scheduler in a separate thread
+        scheduler_thread = threading.Thread(target=self.scheduler.run_pending_jobs)
+        scheduler_thread.daemon = True  # Allow the main program to exit even if the thread is still running
+        scheduler_thread.start()
 
-                    # 2. Create a new VIP user
-                    logger.info("--- Creating a new VIP user ---")
-                    vip_user_row = await conn.fetchrow(
-                        "INSERT INTO users (username, role, points) VALUES ($1, $2, $3) RETURNING id, username, role, points",
-                        'vip_user', UserRole.VIP.value, 1000
-                    )
-                    vip_user = User.model_validate(dict(vip_user_row))
-                    await self.event_bus.publish("user_created", user=vip_user)
+        # Keep the main asyncio loop running indefinitely
+        while True:
+            await asyncio.sleep(1) # Keep the asyncio loop running
 
-                    # 3. Create a user for gamification demo
-                    logger.info("--- Creating a user for gamification demo ---")
-                    gami_user_row = await conn.fetchrow(
-                        "INSERT INTO users (username, role, points) VALUES ($1, $2, $3) RETURNING id, username, role, points",
-                        'gami_user', UserRole.FREE.value, 0
-                    )
-                    gami_user = User.model_validate(dict(gami_user_row))
-                    await self.event_bus.publish("user_created", user=gami_user)
-                    await self.achievements_service.unlock_achievement(gami_user.id, "first_login")
+    async def run_security_demo(self):
+        """Runs a demonstration of the new security layer components."""
+        logger.info("\n" + "="*50 + "\n--- STARTING SECURITY LAYER DEMO ---\n" + "="*50)
 
-                    # 4. Test PointsService and LevelService
-                    logger.info("--- Testing PointsService and LevelService ---")
-                    current_level = self.level_service.get_level(gami_user.points)
-                    logger.info(f"Gami user initial points: {gami_user.points}, Level: {current_level}")
+        # --- Mock Users for Demo ---
+        free_user = User(id=100, username="free_user", role=UserRole.FREE)
+        vip_user = User(id=200, username="vip_user", role=UserRole.VIP)
+        admin_user = User(id=300, username="admin_user", role=UserRole.ADMIN)
+        abusive_user = User(id=400, username="abusive_user", role=UserRole.FREE)
 
-                    await self.points_service.add_points(gami_user, 150) # Should reach Aprendiz
-                    await self.points_service.add_points(gami_user, 200) # Should reach Explorador
-                    await self.points_service.add_points(gami_user, 400) # Should reach Maestro
-                    await self.points_service.deduct_points(gami_user, 50) # Deduct some points
+        # --- 1. AuthMiddleware Demo ---
+        logger.info("\n--- 1. AuthMiddleware: Access Control Demo ---")
 
-                    # 5. Test MissionService
-                    logger.info("--- Testing MissionService ---")
-                    missions = self.mission_service.get_daily_missions(gami_user.id)
-                    logger.info(f"Available missions for gami user: {[m.name for m in missions]}")
-                    await self.mission_service.complete_mission(gami_user.id, "daily_login")
-                    await self.mission_service.complete_mission(gami_user.id, "send_message")
-                    await self.mission_service.complete_mission(gami_user.id, "daily_login") # Try completing again
+        @auth_middleware.check_access(required_role="VIP")
+        async def get_vip_content(user: User):
+            logger.info(f"SUCCESS: VIP content delivered to user {user.id}.")
+            return "Este es el contenido exclusivo para VIPs."
 
-                    # 6. Test AchievementsService
-                    logger.info("--- Testing AchievementsService ---")
-                    unlocked_achievements = self.achievements_service.get_unlocked_for_user(gami_user.id)
-                    logger.info(f"Unlocked achievements for gami user: {[a.name for a in unlocked_achievements]}")
-                    
-                    # 7. Retrieve a user
-                    logger.info("--- Retrieving a user from DB ---")
-                    retrieved_row = await conn.fetchrow("SELECT * FROM users WHERE username = $1", 'demo_user')
-                    if retrieved_row:
-                        retrieved_user = User.model_validate(dict(retrieved_row))
-                        logger.info(f"Successfully retrieved user: {retrieved_user.model_dump_json(indent=2)}")
+        @auth_middleware.check_access(required_role="ADMIN")
+        async def get_admin_panel(user: User):
+            logger.info(f"SUCCESS: Admin panel accessed by user {user.id}.")
+            return "Bienvenido al panel de administración."
 
-                    # 8. Test ChannelService
-                    logger.info("--- Testing ChannelService ---")
-                    # self.channel_service is not initialized in Application.__init__
-                    # To avoid errors, let's initialize it.
-                    self.channel_service = ChannelService(self.event_bus)
-                    await self.channel_service.add_channel(chat_id=12345, is_vip=False)
-                    await self.channel_service.set_reactions(chat_id=12345, reactions=["👍", "👎", "❤️"])
-                    await self.channel_service.add_channel(chat_id=67890, is_vip=True)
+        # Test cases
+        await get_vip_content(free_user)  # Should fail
+        await get_vip_content(vip_user)   # Should succeed
+        await get_admin_panel(vip_user)   # Should fail
+        await get_admin_panel(admin_user) # Should succeed
 
-                    # 9. Test SubscriptionService
-                    logger.info("--- Testing SubscriptionService ---")
-                    # self.subscription_service is not initialized in Application.__init__
-                    self.subscription_service = SubscriptionService(self.event_bus)
-                    # Use an existing user for VIP demo, e.g., std_user
-                    await self.subscription_service.grant_vip(std_user, 7) # Grant VIP for 7 days
-                    is_std_user_vip = self.subscription_service.is_vip(std_user.id)
-                    logger.info(f"Is standard user VIP? {is_std_user_vip}")
-                    await self.subscription_service.revoke_vip(std_user)
-                    is_std_user_vip = self.subscription_service.is_vip(std_user.id)
-                    logger.info(f"Is standard user VIP after revoke? {is_std_user_vip}")
-
-                    # 10. Test ContentService
-                    logger.info("--- Testing ContentService ---")
-                    # self.content_service is not initialized in Application.__init__
-                    self.content_service = ContentService(self.event_bus)
-                    from datetime import datetime, timedelta
-                    future_time = datetime.now() + timedelta(minutes=5)
-                    await self.content_service.schedule_post(
-                        content="Hello everyone! This is a scheduled post.",
-                        schedule_time=future_time,
-                        channel_id=12345
-                    )
-                    # Simulate a reaction to a post
-                    await self.content_service.track_engagement(post_id=1, user_id=gami_user.id, engagement_type="reaction_added", value="👍")
-
-                    # 11. Run Integration Hub Demo
-                    await self.run_integration_demo()
-
-            except Exception as e:
-                logger.error(f"An error occurred during the demo execution: {e}", exc_info=True)
-            finally:
-                logger.info("Application shutting down...")
-                await self.db_manager.disconnect()
-        else:
-            logger.warning("Skipping database-dependent demo due to connection failure.")
-            # Still run the integration demo if DB is not connected, as it uses in-memory stores
-            await self.run_integration_demo()
-
-    async def run_integration_demo(self):
-        """Runs the demonstration of the new integration flows via the hub."""
-        logger.info("\n" + "="*50 + "\n--- STARTING INTEGRATION HUB DEMO ---\n" + "="*50)
+        # --- 2. ContentGuard Demo ---
+        logger.info("\n--- 2. ContentGuard: Watermarking and Protection ---")
         
-        # Flow 1: Reacción en canal → puntos → logro → fragmento
-        logger.info("\n--- SIMULATING FLOW 1: Channel Reaction → Points → Achievement → Fragment ---")
-        reaction_data = {"user_id": 1, "channel_id": "ch-1", "reaction": "❤️"}
-        self.hub.route_event("CHANNEL_REACTION", reaction_data)
+        vip_content = await get_vip_content(vip_user)
+        if vip_content:
+            watermarked_content = content_guard.apply_watermark(vip_content, vip_user.id)
+            protection_settings = content_guard.disable_forwarding_settings()
+            logger.info("Original content: " + vip_content)
+            logger.info("Watermarked content: " + watermarked_content)
+            logger.info(f"Protection settings to apply on send: {protection_settings}")
 
-        # Flow 2: Decisión en historia → VIP temporal → contenido exclusivo
-        logger.info("\n--- SIMULATING FLOW 2: Story Decision → Temp VIP → Exclusive Content ---")
-        decision_data = {"user_id": 2, "choice": "explore_cave", "story_id": "s-1"}
-        self.hub.route_event("STORY_CHOICE_MADE", decision_data)
+        # --- 3. AntiAbuseSystem Demo ---
+        logger.info("\n--- 3. AntiAbuseSystem: Rate Limiting and Cooldown ---")
         
-        logger.info("\n" + "="*50 + "\n--- INTEGRATION HUB DEMO FINISHED ---\n" + "="*50)
+        logger.info(f"Simulating high activity for user {abusive_user.id}...")
+        for i in range(25):
+            # Simulate an interaction
+            if anti_abuse_system.is_in_cooldown(abusive_user.id):
+                logger.warning(f"Interaction {i+1} BLOCKED: User {abusive_user.id} is in cooldown.")
+            else:
+                logger.info(f"Interaction {i+1} allowed for user {abusive_user.id}.")
+                if anti_abuse_system.detect_patterns(abusive_user.id):
+                    logger.error(f"ABUSE DETECTED: User {abusive_user.id} has been put on cooldown.")
+            await asyncio.sleep(0.05) # Rapid interactions
 
-    async def run_admin_demo(self):
-        """Runs a non-interactive demo of the admin panel functionalities."""
-        logger.info("Iniciando la demostración del panel de administración...")
-        self.setup_integration_hub()
+        logger.info(f"Simulating an interaction for a normal user {free_user.id}...")
+        if not anti_abuse_system.is_in_cooldown(free_user.id):
+            anti_abuse_system.detect_patterns(free_user.id)
+            logger.info(f"Normal interaction allowed for user {free_user.id}.")
 
-        print("\n" + "="*50 + "\n--- INICIANDO DEMO DE ADMINISTRACIÓN ---\n" + "="*50)
-
-        # 1. Mostrar métricas iniciales
-        print("\n--- 1. Métricas Iniciales del Dashboard ---")
-        metrics = self.dashboard_service.get_metrics()
-        for key, value in metrics.items():
-            print(f"- {key.replace('_', ' ').title()}: {value}")
-        print("------------------------------------------")
-        
-        # 2. Crear una misión personalizada
-        print("\n--- 2. Creando Misión Personalizada ---")
-        mission_config = {
-            "name": "reaction_enthusiast",
-            "description": "Reacciona a 3 mensajes.",
-            "reward_points": 50,
-            "trigger": {"event": "CHANNEL_REACTION", "goal": 3}
-        }
-        if self.mission_designer.create_mission(mission_config):
-            print(f"Misión '{mission_config['name']}' creada con éxito.")
-        print("---------------------------------------")
-
-        # 3. Programar contenido basado en un disparador
-        print("\n--- 3. Programando Contenido ---")
-        content_to_schedule = "¡Felicidades por completar tu primera misión de reacciones! Sigue así."
-        trigger_condition = "MISSION_COMPLETED:reaction_enthusiast"
-        if self.content_planner.schedule_post(content_to_schedule, trigger_condition):
-            print(f"Contenido programado para el disparador: '{trigger_condition}'.")
-        print("--------------------------------")
-
-        # 4. Simular eventos para probar los disparadores
-        print("\n--- 4. Simulando Eventos ---")
-        print("Simulando 3 eventos 'CHANNEL_REACTION' para el usuario 1 para completar la misión...")
-        for i in range(3):
-            print(f"Simulación de reacción #{i+1}")
-            self.hub.route_event("CHANNEL_REACTION", {"user_id": 1, "reaction": "👍"})
-        print("----------------------------")
-
-        # 5. Mostrar métricas finales
-        print("\n--- 5. Métricas Finales del Dashboard ---")
-        metrics = self.dashboard_service.get_metrics()
-        for key, value in metrics.items():
-            print(f"- {key.replace('_', ' ').title()}: {value}")
-        print("-----------------------------------------")
-
-        print("\n" + "="*50 + "\n--- DEMO DE ADMINISTRACIÓN FINALIZADA ---\n" + "="*50)
+        logger.info("\n" + "="*50 + "\n--- SECURITY LAYER DEMO FINISHED ---\n" + "="*50)
 
 
 async def main():
@@ -349,8 +242,9 @@ async def main():
     import sys
     app = Application()
 
-    if len(sys.argv) > 1 and sys.argv[1] == 'admin':
-        await app.run_admin_demo()
+    # Allow running security demo directly
+    if len(sys.argv) > 1 and sys.argv[1] == 'security':
+        await app.run_security_demo()
     else:
         await app.run()
 
