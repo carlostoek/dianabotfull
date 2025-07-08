@@ -1,7 +1,209 @@
-Para desarrollar el sistema de 
 
+🎮 Sistema de Gamificación – DianaBot
+
+El sistema de gamificación es un ecosistema autónomo dentro de DianaBot que permite crear dinámicas de juego, recompensas y progresión para los usuarios.
+Todo gira en torno a la moneda virtual llamada besitos, que es la base de la economía interna.
+
+
+---
+
+✅ ¿Qué hace este sistema?
+
+🔹 1. Registro y Control de Puntos (Besitos)
+
+Cada usuario tiene un saldo de besitos que se puede ganar o gastar.
+
+Los besitos se obtienen mediante:
+
+Cumplir misiones.
+
+Reaccionar a mensajes.
+
+Completar trivias.
+
+Reclamar recompensas diarias.
+
+
+Los besitos se pueden gastar en:
+
+Comprar artículos en la tienda.
+
+Pujar en subastas.
+
+
+
+
+---
+
+🔹 2. Sistema de Misiones
+
+El bot asigna misiones al usuario.
+
+Las misiones pueden ser:
+
+De un solo paso.
+
+De progreso acumulativo.
+
+
+Al completar misiones, el usuario obtiene:
+
+Besitos.
+
+Artículos exclusivos.
+
+Acceso a contenido especial.
+
+
+
+
+---
+
+🔹 3. Registro de Reacciones
+
+El bot registra cuando los usuarios reaccionan a publicaciones seleccionadas.
+
+Reaccionar puede otorgar:
+
+Puntos adicionales (besitos).
+
+Desbloqueo de pistas.
+
+Progreso en misiones específicas.
+
+
+
+
+---
+
+🔹 4. Sistema de Mochila (Inventario)
+
+Todo lo que el usuario compra o gana se almacena en su mochila personal.
+
+El usuario puede consultar su inventario en cualquier momento.
+
+Algunos objetos pueden:
+
+Usarse en la narrativa.
+
+Mejorar recompensas en misiones.
+
+Desbloquear trivias o contenido exclusivo.
+
+
+
+
+---
+
+🔹 5. Tienda Virtual
+
+La tienda permite gastar besitos para:
+
+Comprar artículos coleccionables.
+
+Adquirir herramientas que influyen en el juego.
+
+Comprar pistas para la narrativa.
+
+
+Los artículos comprados se almacenan en la mochila.
+
+
+
+---
+
+🔹 6. Sistema de Subastas
+
+Subastas dinámicas en tiempo real donde los usuarios compiten por artículos exclusivos.
+
+Los usuarios usan sus besitos para realizar pujas.
+
+El bot gestiona:
+
+Quién tiene la puja más alta.
+
+Cuándo se cierra la subasta.
+
+Entrega automática del artículo al ganador (a la mochila).
+
+
+
+
+---
+
+🔹 7. Trivias
+
+Juegos de preguntas con respuestas múltiples.
+
+Al responder correctamente, el usuario gana:
+
+Besitos.
+
+Acceso a pistas.
+
+Acceso a artículos especiales.
+
+
+Las trivias pueden estar conectadas a la narrativa o ser independientes.
+
+
+
+---
+
+🔹 8. Sistema de Logros (Badges)
+
+Los usuarios pueden desbloquear logros al:
+
+Completar misiones específicas.
+
+Ganar subastas.
+
+Acumular besitos.
+
+
+Los logros pueden otorgar:
+
+Bonificaciones diarias.
+
+Ventajas en misiones.
+
+Acceso a contenido exclusivo.
+
+
+
+
+---
+
+🔹 9. Conexión con la Narrativa (Opcional)
+
+Algunos objetos de la mochila pueden desbloquear fragmentos narrativos ocultos.
+
+Ciertas decisiones en la narrativa pueden requerir artículos o besitos para continuar.
+
+Los logros pueden afectar la historia que recibe el usuario.
+
+
+
+---
+
+💥 Impacto Real del Sistema
+
+Incentiva la interacción diaria.
+
+Motiva la competencia (subastas, trivias).
+
+Premia la exploración (pistas, narrativa oculta).
+
+Genera un sentido de progresión y pertenencia.
+
+Puede vivir de manera independiente o conectarse al sistema de administración de canales para restringir o ampliar accesos.
+
+
+
+Para desarrollar el sistema de gamificación completo que albergue todas las funcionalidades que mencionaste, vamos a implementar cada uno de los componentes necesarios. Esto incluirá la creación de modelos, servicios, handlers y teclados para gestionar las misiones, reacciones, tienda, subastas, trivias, logros y el sistema de inventario.
+9
 ### 1. Modelos de Gamificación
-
+NO NO USAR ESTOS, EN DATABASE ESTÁN LOS NUEVOS MOFELOSUSAR ESTOS, EN DATABASE ESTÁN LOS NUEVOS MOFELOS
 Ya hemos definido los modelos en el archivo `models.py`. Asegúrate de que estén correctamente implementados en tu base de datos. Aquí está el resumen de los modelos que se utilizarán:
 
 ```python
