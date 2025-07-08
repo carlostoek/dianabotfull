@@ -1,0 +1,143 @@
+{
+  "start_scene": {
+    "text": "Te encuentras en una encrucijada. Un camino lleva a un bosque oscuro y el otro a un río brillante.",
+    "image": "crossroads.jpg",
+    "choices": [
+      {
+        "id": "go_forest",
+        "text": "Adentrarte en el bosque oscuro.",
+        "next_scene": "forest_path"
+      },
+      {
+        "id": "go_river",
+        "text": "Seguir el río brillante.",
+        "next_scene": "river_path"
+      }
+    ]
+  },
+  "forest_path": {
+    "text": "El bosque es denso y silencioso. Escuchas un susurro entre los árboles.",
+    "image": "dark_forest.jpg",
+    "choices": [
+      {
+        "id": "investigate_whisper",
+        "text": "Investigar el susurro.",
+        "next_scene": "whisper_encounter"
+      },
+      {
+        "id": "ignore_whisper",
+        "text": "Ignorar el susurro y seguir adelante.",
+        "next_scene": "forest_clearing"
+      }
+    ]
+  },
+  "river_path": {
+    "text": "El río es cristalino y la luz del sol se refleja en él. Ves un bote amarrado a la orilla.",
+    "image": "bright_river.jpg",
+    "choices": [
+      {
+        "id": "take_boat",
+        "text": "Tomar el bote.",
+        "next_scene": "boat_journey"
+      },
+      {
+        "id": "walk_along_river",
+        "text": "Caminar a lo largo de la orilla.",
+        "next_scene": "river_bend"
+      }
+    ]
+  },
+  "whisper_encounter": {
+    "text": "Te acercas al susurro y encuentras una pequeña criatura mágica atrapada en una red.",
+    "image": "magical_creature.jpg",
+    "choices": [
+      {
+        "id": "help_creature",
+        "text": "Ayudar a la criatura.",
+        "next_scene": "creature_freed",
+        "unlocks_fragment": "magic_affinity"
+      },
+      {
+        "id": "leave_creature",
+        "text": "Dejar a la criatura.",
+        "next_scene": "forest_exit"
+      }
+    ]
+  },
+  "forest_clearing": {
+    "text": "Llegas a un claro en el bosque, donde la luz del sol se filtra entre los árboles.",
+    "image": "forest_clearing.jpg",
+    "choices": [
+      {
+        "id": "exit_forest",
+        "text": "Salir del bosque.",
+        "next_scene": "end_scene"
+      }
+    ]
+  },
+  "boat_journey": {
+    "text": "Navegas por el río, disfrutando de la tranquilidad. A lo lejos, ves una cascada.",
+    "image": "river_boat.jpg",
+    "choices": [
+      {
+        "id": "approach_waterfall",
+        "text": "Acercarte a la cascada.",
+        "next_scene": "waterfall_discovery"
+      },
+      {
+        "id": "turn_back",
+        "text": "Dar la vuelta.",
+        "next_scene": "river_bend"
+      }
+    ]
+  },
+  "river_bend": {
+    "text": "El río hace una curva y te encuentras con un antiguo puente de piedra.",
+    "image": "stone_bridge.jpg",
+    "choices": [
+      {
+        "id": "cross_bridge",
+        "text": "Cruzar el puente.",
+        "next_scene": "end_scene"
+      }
+    ]
+  },
+  "creature_freed": {
+    "text": "La criatura mágica te agradece y te otorga un pequeño amuleto.",
+    "image": "amulet.jpg",
+    "choices": [
+      {
+        "id": "continue_journey",
+        "text": "Continuar tu viaje.",
+        "next_scene": "forest_exit"
+      }
+    ]
+  },
+  "forest_exit": {
+    "text": "Sales del bosque y te encuentras en un campo abierto.",
+    "image": "open_field.jpg",
+    "choices": [
+      {
+        "id": "final_destination",
+        "text": "Llegar a tu destino final.",
+        "next_scene": "end_scene"
+      }
+    ]
+  },
+  "waterfall_discovery": {
+    "text": "Detrás de la cascada, descubres una cueva oculta.",
+    "image": "hidden_cave.jpg",
+    "choices": [
+      {
+        "id": "enter_cave",
+        "text": "Entrar en la cueva.",
+        "next_scene": "end_scene"
+      }
+    ]
+  },
+  "end_scene": {
+    "text": "Has llegado al final de esta aventura. ¡Gracias por jugar!",
+    "image": "the_end.jpg",
+    "choices": []
+  }
+}

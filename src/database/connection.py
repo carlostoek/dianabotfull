@@ -62,6 +62,15 @@ class DatabaseManager:
                     role VARCHAR(10) NOT NULL DEFAULT 'free',
                     points INTEGER NOT NULL DEFAULT 0
                 );
+                CREATE TABLE IF NOT EXISTS user_progress (
+                    user_id INTEGER PRIMARY KEY REFERENCES users(id),
+                    current_scene_id VARCHAR(255) NOT NULL
+                );
+                CREATE TABLE IF NOT EXISTS user_unlocked_fragments (
+                    user_id INTEGER REFERENCES users(id),
+                    fragment_id VARCHAR(255) NOT NULL,
+                    PRIMARY KEY (user_id, fragment_id)
+                );
             """)
             # You can add more table creations here
         logger.info("Database schema initialized successfully.")
