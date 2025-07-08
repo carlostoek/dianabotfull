@@ -1,0 +1,402 @@
+# database/models.py
+
+from sqlalchemy import (
+    create_engine, Column, Integer, String, BigInteger, DateTime, 
+    Boolean, ForeignKey, Float, JSON, Text, Table
+)
+from sqlalchemy.orm import declarative_base, relationship
+from sqlalchemy.sql import func
+import datetime
+
+Base = declarative_base()
+
+# --- Modelos Principales ---
+
+class User(Base):
+    """Usuario del sistema con relaciones extendidas"""
+    __tablename__ = 'users'
+    
+    id = Column(Integer, primary_key=True)
+    telegram_id = Column(BigInteger, unique=True, nullable=False, index=True)
+    username = Column(String, nullable=True)
+    first_name = Column(String, nullable=False)
+    last_name = Column(String, nullable=True)
+    is_banned = Column(Boolean, default=False)
+    created_at = Column(DateTime, server_default=func.now())
+    updated_at = Column(DateTime, onupdate=func.now())
+
+    # Relaciones principales
+    subscription = relationship("Subscription", back_populates="user", uselist=False, cascade="all, delete-orphan")
+    profile = relationship("UserProfile", back_populates="user", uselist=False, cascade="all, delete-orphan")
+    story_progress = relationship("UserStoryProgress", back_populates="user", uselist=False, cascade="all, delete-orphan")
+
+    # Relaciones de gamificación
+    missions = relationship("UserMission", back_populates="user")
+    inventory = relationship("UserInventory", back_populates="user")
+    achievements = relationship("UserAchievement", back_populates="user")
+    bids = relationship("Bid", back_populates="user")
+    decision_history = relationship("UserDecisionHistory", back_populates="user")
+    unlocked_clues = relationship("StoryClue", secondary="user_unlocked_clues")
+
+class Subscription(Base):
+    """Suscripción VIP de usuario"""
+    __tablename__ = 'subscriptions'
+    
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey('users.id'), nullable=False, unique=True)
+    start_date = Column(DateTime, default=datetime.datetime.utcnow)
+    end_date = Column(DateTime, nullable=False)
+    is_active = Column(Boolean, default=True)
+
+    user = relationship("User", back_populates="subscription")
+
+class Channel(Base):
+    """Canales gestionados por el bot"""
+    __tablename__ = 'channels'
+    
+    id = Column(Integer, primary_key=True)
+    name = Column(String, unique=True, nullable=False)
+    channel_id = Column(BigInteger, unique=True, nullable=False)
+    access_type = Column(String, default='free')
+    join_delay_minutes = Column(Integer, default=0)
+    
+    # Relaciones
+    missions = relationship("Mission", back_populates="channel")
+    hidden_clues = relationship("StoryClue", back_populates="channel")
+    narrative_integrations = relationship("NarrativeIntegration", back_populates="channel")
+
+# --- Modelos de Gamificación ---
+
+class UserProfile(Base):
+    """Perfil de gamificación del usuario"""
+    __tablename__ = 'user_profiles'
+    
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey('users.id'), unique=True, nullable=False)
+    besitos = Column(Integer, default=0)
+    last_daily_reward = Column(DateTime, nullable=True)
+    last_activity = Column(DateTime, default=datetime.datetime.utcnow)
+    story_points = Column(Integer, default=0)  # Puntos de progreso narrativo
+    
+    user = relationship("User", back_populates="profile")
+
+class Mission(Base):
+    """Misiones disponibles"""
+    __tablename__ = 'missions'
+    
+    id = Column(Integer, primary_key=True)
+    name = Column(String, nullable=False)
+    description = Column(Text, nullable=False)
+    action_type = Column(String, nullable=False)
+    required_count = Column(Integer, default=1)
+    besitos_reward = Column(Integer, default=0)
+    item_reward_id = Column(Integer, ForeignKey('items.id'), nullable=True)
+    unlocks_fragment_id = Column(Integer, ForeignKey('story_fragments.id'), nullable=True)
+    
+    channel_id = Column(BigInteger, ForeignKey('channels.channel_id'), nullable=True)
+    channel = relationship("Channel", back_populates="missions")
+    item_reward = relationship("Item")
+    unlocks_fragment = relationship("StoryFragment")
+
+class UserMission(Base):
+    """Progreso de usuario en misiones"""
+    __tablename__ = 'user_missions'
+    
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey('users.id'), nullable=False)
+    mission_id = Column(Integer, ForeignKey('missions.id'), nullable=False)
+    progress = Column(Integer, default=0)
+    is_completed = Column(Boolean, default=False)
+    completed_at = Column(DateTime, nullable=True)
+    
+    user = relationship("User", back_populates="missions")
+    mission = relationship("Mission")
+
+class Item(Base):
+    """Ítems del sistema"""
+    __tablename__ = 'items'
+    
+    id = Column(Integer, primary_key=True)
+    name = Column(String, nullable=False)
+    description = Column(Text, nullable=True)
+    item_type = Column(String, nullable=False)
+    rarity = Column(String, default='common')
+    besitos_cost = Column(Integer, nullable=True)
+    effect = Column(JSON, nullable=True)
+    unlocks_fragment_id = Column(Integer, ForeignKey('story_fragments.id'), nullable=True)
+    
+    unlocks_fragment = relationship("StoryFragment")
+
+class UserInventory(Base):
+    """Inventario de usuario"""
+    __tablename__ = 'user_inventory'
+    
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey('users.id'), nullable=False)
+    item_id = Column(Integer, ForeignKey('items.id'), nullable=False)
+    quantity = Column(Integer, default=1)
+    acquired_at = Column(DateTime, default=datetime.datetime.utcnow)
+    
+    user = relationship("User", back_populates="inventory")
+    item = relationship("Item")
+
+class Trivia(Base):
+    """Trivias del sistema"""
+    __tablename__ = 'trivias'
+    
+    id = Column(Integer, primary_key=True)
+    question = Column(Text, nullable=False)
+    options = Column(JSON, nullable=False)
+    correct_index = Column(Integer, nullable=False)
+    besitos_reward = Column(Integer, default=0)
+    item_reward_id = Column(Integer, ForeignKey('items.id'), nullable=True)
+    unlocks_fragment_id = Column(Integer, ForeignKey('story_fragments.id'), nullable=True)
+    
+    post_id = Column(Integer, ForeignKey('posts.id'), nullable=True)
+    post = relationship("Post", back_populates="trivia")
+    unlocks_fragment = relationship("StoryFragment")
+
+class AchievementCondition(Base):
+    """Condiciones para logros"""
+    __tablename__ = 'achievement_conditions'
+    
+    id = Column(Integer, primary_key=True)
+    achievement_id = Column(Integer, ForeignKey('achievements.id'), nullable=False)
+    condition_type = Column(String, nullable=False)
+    condition_value = Column(Integer, nullable=False)
+    operator = Column(String, default='>=')
+
+class Achievement(Base):
+    """Logros disponibles"""
+    __tablename__ = 'achievements'
+    
+    id = Column(Integer, primary_key=True)
+    name = Column(String, nullable=False)
+    description = Column(Text, nullable=False)
+    besitos_reward = Column(Integer, default=0)
+    item_reward_id = Column(Integer, ForeignKey('items.id'), nullable=True)
+    unlocks_fragment_id = Column(Integer, ForeignKey('story_fragments.id'), nullable=True)
+    
+    conditions = relationship("AchievementCondition", backref="achievement", cascade="all, delete-orphan")
+    item_reward = relationship("Item")
+    unlocks_fragment = relationship("StoryFragment")
+
+class UserAchievement(Base):
+    """Logros desbloqueados por usuarios"""
+    __tablename__ = 'user_achievements'
+    
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey('users.id'), nullable=False)
+    achievement_id = Column(Integer, ForeignKey('achievements.id'), nullable=False)
+    unlocked_at = Column(DateTime, default=datetime.datetime.utcnow)
+    
+    user = relationship("User", back_populates="achievements")
+    achievement = relationship("Achievement")
+
+class Auction(Base):
+    """Subastas activas"""
+    __tablename__ = 'auctions'
+    
+    id = Column(Integer, primary_key=True)
+    item_id = Column(Integer, ForeignKey('items.id'), nullable=False)
+    quantity = Column(Integer, default=1)
+    start_time = Column(DateTime, default=datetime.datetime.utcnow)
+    end_time = Column(DateTime, nullable=False)
+    status = Column(String, default='active')
+    
+    item = relationship("Item")
+    bids = relationship("Bid", back_populates="auction")
+
+class Bid(Base):
+    """Pujas en subastas"""
+    __tablename__ = 'bids'
+    
+    id = Column(Integer, primary_key=True)
+    auction_id = Column(Integer, ForeignKey('auctions.id'), nullable=False)
+    user_id = Column(Integer, ForeignKey('users.id'), nullable=False)
+    amount = Column(Integer, nullable=False)
+    bid_time = Column(DateTime, default=datetime.datetime.utcnow)
+    
+    auction = relationship("Auction", back_populates="bids")
+    user = relationship("User", back_populates="bids")
+
+# --- Modelos de Narrativa ---
+
+class Character(Base):
+    """Personajes narrativos"""
+    __tablename__ = 'characters'
+    
+    id = Column(Integer, primary_key=True)
+    name = Column(String, nullable=False)
+    description = Column(Text, nullable=True)
+    personality_traits = Column(JSON)
+    default_avatar = Column(String)
+
+class StoryLevel(Base):
+    """Niveles narrativos"""
+    __tablename__ = 'story_levels'
+    
+    id = Column(Integer, primary_key=True)
+    name = Column(String, nullable=False)
+    description = Column(Text)
+    required_vip = Column(Boolean, default=False)
+    order = Column(Integer)
+    unlock_conditions = Column(JSON)
+
+class StoryFragment(Base):
+    """Fragmentos de historia"""
+    __tablename__ = 'story_fragments'
+    
+    id = Column(Integer, primary_key=True)
+    title = Column(String, nullable=False)
+    content = Column(Text, nullable=False)
+    character_id = Column(Integer, ForeignKey('characters.id'), nullable=False)
+    level_id = Column(Integer, ForeignKey('story_levels.id'), nullable=False)
+    is_decision_point = Column(Boolean, default=False)
+    media_type = Column(String, nullable=True)
+    media_file_id = Column(String, nullable=True)
+    besitos_reward = Column(Integer, default=0)
+    item_reward_id = Column(Integer, ForeignKey('items.id'), nullable=True)
+    
+    character = relationship("Character")
+    level = relationship("StoryLevel")
+    item_reward = relationship("Item")
+    decisions = relationship("StoryDecision", back_populates="fragment", cascade="all, delete-orphan")
+    clues = relationship("StoryClue", back_populates="fragment", cascade="all, delete-orphan")
+
+class StoryDecision(Base):
+    """Decisiones en fragmentos narrativos"""
+    __tablename__ = 'story_decisions'
+    
+    id = Column(Integer, primary_key=True)
+    fragment_id = Column(Integer, ForeignKey('story_fragments.id'), nullable=False)
+    choice_text = Column(Text, nullable=False)
+    next_fragment_id = Column(Integer, ForeignKey('story_fragments.id'), nullable=True)
+    required_item_id = Column(Integer, ForeignKey('items.id'), nullable=True)
+    required_besitos = Column(Integer, default=0)
+    is_reversible = Column(Boolean, default=False)
+    consequence = Column(Text)
+    
+    fragment = relationship("StoryFragment", back_populates="decisions", foreign_keys=[fragment_id])
+    next_fragment = relationship("StoryFragment", foreign_keys=[next_fragment_id])
+    required_item = relationship("Item")
+
+class UserStoryProgress(Base):
+    """Progreso narrativo del usuario"""
+    __tablename__ = 'user_story_progress'
+    
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey('users.id'), nullable=False)
+    current_fragment_id = Column(Integer, ForeignKey('story_fragments.id'), nullable=True)
+    current_level_id = Column(Integer, ForeignKey('story_levels.id'), nullable=True)
+    unlocked_levels = Column(JSON, default=[])
+    story_started = Column(Boolean, default=False)
+    last_interaction = Column(DateTime, default=datetime.datetime.utcnow)
+    
+    user = relationship("User", back_populates="story_progress")
+    current_fragment = relationship("StoryFragment", foreign_keys=[current_fragment_id])
+    current_level = relationship("StoryLevel")
+
+class UserDecisionHistory(Base):
+    """Historial de decisiones del usuario"""
+    __tablename__ = 'user_decision_history'
+    
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey('users.id'), nullable=False)
+    fragment_id = Column(Integer, ForeignKey('story_fragments.id'), nullable=False)
+    decision_id = Column(Integer, ForeignKey('story_decisions.id'), nullable=False)
+    decision_date = Column(DateTime, default=datetime.datetime.utcnow)
+    
+    user = relationship("User", back_populates="decision_history")
+    fragment = relationship("StoryFragment")
+    decision = relationship("StoryDecision")
+
+class StoryClue(Base):
+    """Pistas narrativas"""
+    __tablename__ = 'story_clues'
+    
+    id = Column(Integer, primary_key=True)
+    fragment_id = Column(Integer, ForeignKey('story_fragments.id'), nullable=False)
+    clue_text = Column(Text, nullable=False)
+    unlock_condition = Column(JSON)
+    channel_id = Column(BigInteger, ForeignKey('channels.channel_id'), nullable=True)
+    message_hint = Column(Text)
+    is_hidden = Column(Boolean, default=True)
+    
+    fragment = relationship("StoryFragment", back_populates="clues")
+    channel = relationship("Channel", back_populates="hidden_clues")
+
+class NarrativeIntegration(Base):
+    """Integración narrativa con canales"""
+    __tablename__ = 'narrative_integration'
+    
+    id = Column(Integer, primary_key=True)
+    channel_id = Column(BigInteger, ForeignKey('channels.channel_id'), nullable=False)
+    fragment_id = Column(Integer, ForeignKey('story_fragments.id'), nullable=False)
+    trigger_type = Column(String)
+    trigger_value = Column(String)
+    is_active = Column(Boolean, default=True)
+    
+    channel = relationship("Channel", back_populates="narrative_integrations")
+    fragment = relationship("StoryFragment")
+
+# --- Tabla de asociación para pistas desbloqueadas ---
+class UserUnlockedClue(Base):
+    __tablename__ = 'user_unlocked_clues'
+    
+    user_id = Column(Integer, ForeignKey('users.id'), primary_key=True)
+    clue_id = Column(Integer, ForeignKey('story_clues.id'), primary_key=True)
+    unlocked_at = Column(DateTime, default=datetime.datetime.utcnow)
+    
+    user = relationship("User", back_populates="unlocked_clues")
+    clue = relationship("StoryClue")
+
+# --- Modelos de Publicaciones (Actualizados) ---
+
+class Post(Base):
+    """Publicaciones en canales"""
+    __tablename__ = 'posts'
+    
+    id = Column(Integer, primary_key=True)
+    channel_id = Column(BigInteger, nullable=False)
+    message_text = Column(String, nullable=True)
+    media_type = Column(String, nullable=True)
+    media_file_id = Column(String, nullable=True)
+    is_protected = Column(Boolean, default=False)
+    scheduled_time = Column(DateTime, nullable=True)
+    is_sent = Column(Boolean, default=False)
+    created_at = Column(DateTime, server_default=func.now())
+    updated_at = Column(DateTime, onupdate=func.now())
+    is_gamified = Column(Boolean, default=False)
+    contains_clue = Column(Boolean, default=False)
+    clue_id = Column(Integer, ForeignKey('story_clues.id'), nullable=True)
+    
+    buttons = relationship("PostButton", back_populates="post", cascade="all, delete-orphan")
+    reactions = relationship("PostReaction", back_populates="post", cascade="all, delete-orphan")
+    trivia = relationship("Trivia", back_populates="post", uselist=False, cascade="all, delete-orphan")
+    clue = relationship("StoryClue")
+
+class PostButton(Base):
+    """Botones en publicaciones"""
+    __tablename__ = 'post_buttons'
+    
+    id = Column(Integer, primary_key=True)
+    post_id = Column(Integer, ForeignKey('posts.id'), nullable=False)
+    text = Column(String, nullable=False)
+    url = Column(String, nullable=True)
+    callback_data = Column(String, nullable=True)
+    row_order = Column(Integer, nullable=False)
+    button_order = Column(Integer, nullable=False)
+
+    post = relationship("Post", back_populates="buttons")
+
+class PostReaction(Base):
+    """Reacciones en publicaciones"""
+    __tablename__ = 'post_reactions'
+    
+    id = Column(Integer, primary_key=True)
+    post_id = Column(Integer, ForeignKey('posts.id'), nullable=False)
+    emoji = Column(String, nullable=False)
+    besitos_value = Column(Integer, default=0)
+    
+    post = relationship("Post", back_populates="reactions")
