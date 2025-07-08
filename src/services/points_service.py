@@ -1,42 +1,34 @@
 import logging
-from src.core.event_bus import EventBus
-from src.models.user import User # Assuming User model is needed for type hinting or direct manipulation
+# from src.core.event_bus import EventBus # Manteniendo la dependencia original por si se usa en otro lado
+from src.models.user import User 
+from src.core.integration_hub import IntegrationHub
 
 logger = logging.getLogger(__name__)
 
 class PointsService:
     """
     Manages the addition and deduction of points for users.
-    Emits 'points_earned' events.
     """
-    def __init__(self, event_bus: EventBus):
+    def __init__(self, event_bus=None, hub: IntegrationHub = None):
         self.event_bus = event_bus
-        # In a real application, you would interact with a database here
-        # to store and retrieve user points. For this example, we'll
-        # simulate it with a simple in-memory dictionary.
-        self._user_points = {} # user_id: points
+        self.hub = hub
+        self._user_points = {} 
 
     async def add_points(self, user: User, amount: int):
-        """
-        Adds points to a user's balance and publishes a points_earned event.
-        """
         if amount <= 0:
             logger.warning(f"Attempted to add non-positive points ({amount}) to user {user.id}.")
             return
 
-        # Simulate database interaction: get current points, update, save
-        current_points = self._user_points.get(user.id, user.points) # Use user.points as initial if not in dict
+        current_points = self._user_points.get(user.id, user.points)
         new_balance = current_points + amount
         self._user_points[user.id] = new_balance
-        user.points = new_balance # Update the user object directly for consistency
+        user.points = new_balance 
 
         logger.info(f"User {user.id} earned {amount} points. New balance: {new_balance}")
-        await self.event_bus.publish("points_earned", user_id=user.id, amount=amount, new_balance=new_balance)
+        if self.event_bus:
+            await self.event_bus.publish("points_earned", user_id=user.id, amount=amount, new_balance=new_balance)
 
     async def deduct_points(self, user: User, amount: int):
-        """
-        Deducts points from a user's balance.
-        """
         if amount <= 0:
             logger.warning(f"Attempted to deduct non-positive points ({amount}) from user {user.id}.")
             return
@@ -48,7 +40,27 @@ class PointsService:
 
         new_balance = current_points - amount
         self._user_points[user.id] = new_balance
-        user.points = new_balance # Update the user object directly for consistency
+        user.points = new_balance
 
         logger.info(f"User {user.id} had {amount} points deducted. New balance: {new_balance}")
-        # Optionally, you could publish a 'points_deducted' event here if needed
+
+    # --- Nuevos métodos para IntegrationHub ---
+    def add_points_for_reaction(self, data: dict):
+        """
+        Handler para el evento 'CHANNEL_REACTION'. Otorga puntos por una reacción.
+        """
+        user_id = data.get("user_id")
+        reaction = data.get("reaction")
+        points_to_add = 5  # 5 puntos por reacción
+        
+        logger.info(f"[HUB] PointsService: Añadiendo {points_to_add} puntos a user '{user_id}' por la reacción '{reaction}'.")
+        # En un caso real, se actualizaría la base de datos.
+        # Aquí simulamos la actualización y preparamos los datos para el siguiente evento.
+        
+        new_data = {
+            "user_id": user_id,
+            "points_awarded": points_to_add,
+            "reason": "channel_reaction"
+        }
+        # Disparamos el siguiente evento en la cadena
+        self.hub.route_event("POINTS_AWARDED", new_data)
