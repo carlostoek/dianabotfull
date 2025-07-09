@@ -19,7 +19,7 @@ class Settings(BaseSettings):
     Reads from environment variables or a .env file.
     """
     DATABASE_URL: str = "sqlite+aiosqlite:///file::memory:?cache=shared"
-    BOT_TOKEN: str | None = None
+    TELEGRAM_TOKEN: str | None = None
     ADMIN_IDS: str | None = None
     FREE_CHANNEL_ID: str | None = None
     VIP_CHANNEL_ID: str | None = None

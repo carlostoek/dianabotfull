@@ -43,5 +43,19 @@ class ScenarioRunner:
         await asyncio.sleep(0.05)  # Pequeño delay para async
 
     async def _check_assertion(self, assertion: dict):
-        # Implementa lógica de validación aquí
-        pass
+        assertion_type = assertion["type"]
+        if assertion_type == "db_value":
+            user_id = assertion.get("user_id", 1) # Assuming user_id 1 for now, or get from assertion
+            user = await self.db.get_user(user_id)
+            if user:
+                # Evaluate the check string, e.g., "user.points == 5"
+                # This is a simplified evaluation and might need a more robust solution
+                # for complex expressions. For now, assuming simple direct checks.
+                check_str = assertion["check"]
+                # Replace 'user.points' with actual user points
+                if "user.points" in check_str:
+                    return eval(check_str.replace("user.points", str(user["points"]))) # nosec
+                # Add other checks as needed
+            return False
+        # Add other assertion types as needed
+        return False

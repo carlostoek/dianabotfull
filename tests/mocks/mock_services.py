@@ -4,7 +4,7 @@ from unittest.mock import AsyncMock
 class MockDatabase:
     def __init__(self):
         self.users = {
-            1: {"id": 1, "username": "test_user", "points": 0, "role": "free"}
+            1: {"id": 1, "username": "test_user", "points": 0, "role": "free", "unlocked_fragments": []}
         }
     
     async def get_user(self, user_id: int):
@@ -13,6 +13,10 @@ class MockDatabase:
     async def update_user(self, user_id: int, **data):
         if user_id in self.users:
             self.users[user_id].update(data)
+
+    async def get_unlocked_fragments(self, user_id: int):
+        user = await self.get_user(user_id)
+        return user.get("unlocked_fragments", []) if user else []
 
 class MockEventBus:
     def __init__(self):
