@@ -6,3 +6,4 @@ schedule
 aiogram[all]
 sqlalchemy
 alembic
+aiosqlite

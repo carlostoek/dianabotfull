@@ -6,6 +6,10 @@ from sqlalchemy.engine import Connection
 from sqlalchemy.ext.asyncio import async_engine_from_config
 
 from alembic import context
+from dotenv import load_dotenv
+import os
+
+load_dotenv() # Carga las variables de entorno del archivo .env
 
 # Import your models' Base
 from src.database.models import Base 
@@ -68,7 +72,8 @@ async def run_async_migrations() -> None:
 
     """
     connectable = async_engine_from_config(
-        config.get_section(config.config_main_section, {}),
+        config.get_section(config.config_ini_section, {}),
+        url=os.environ.get("DATABASE_URL"),
         prefix="sqlalchemy.",
         poolclass=pool.NullPool,
     )

@@ -1,26 +1,33 @@
+# main.py
 import asyncio
-import logging
-from src.core.config import setup_logging
-from src.core.event_bus import EventBus
-from src.telegram_bot.core import TelegramBot
-from src.telegram_bot.event_listeners import setup_telegram_event_listeners
+import os
+from dotenv import load_dotenv
 
-# Initialize logger
-setup_logging()
-logger = logging.getLogger(__name__)
+from aiogram import Bot, Dispatcher
+
+from src.database.connection import init_db
+from src.telegram_bot.middleware import DbSessionMiddleware
+from src.telegram_bot.handlers.start import router as start_router
 
 async def main():
-    """Asynchronous entry point."""
-    logger.info("Application starting up...")
+    load_dotenv() # Cargar variables de entorno
 
-    event_bus = EventBus()
+    # Inicializar la base de datos (crear tablas si no existen)
+    await init_db()
 
-    # Configure Telegram listeners for internal events
-    setup_telegram_event_listeners(event_bus)
-    
-    # Initialize and start Telegram bot
-    bot = TelegramBot(event_bus)
-    await bot.start()
+    bot = Bot(token=os.environ.get("TELEGRAM_BOT_TOKEN"))
+    dp = Dispatcher()
+
+    # Registrar middleware
+    dp.message.middleware(DbSessionMiddleware())
+    dp.callback_query.middleware(DbSessionMiddleware())
+
+    # Registrar routers
+    dp.include_router(start_router)
+
+    # Iniciar el bot
+    print("Bot started...")
+    await dp.start_polling(bot)
 
 if __name__ == "__main__":
     asyncio.run(main())
