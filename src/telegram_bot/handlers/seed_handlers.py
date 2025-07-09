@@ -27,3 +27,7 @@ async def seed_command(message: types.Message, session: AsyncSession): # Inyecta
         await message.reply("Base de datos sembrada exitosamente.")
     except Exception as e:
         await message.reply(f"Error al sembrar la base de datos: {e}")
+
+@router.message(Command("test"))
+async def test_command(message: types.Message):
+    await message.reply("Comando /test recibido.")
