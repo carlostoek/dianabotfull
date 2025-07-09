@@ -1,4 +1,4 @@
-# Análisis y Definición de Modelos para DianaBot
+# Análisis y Definición de Modelos para DianaBot (Revisión 2)
 
 ## Resumen Ejecutivo
 
@@ -30,21 +30,21 @@ Este informe detalla la arquitectura de datos para el sistema **DianaBot**. Tras
 | **Mission** | Define una misión disponible en el sistema. | `id`, `name`, `description`, `reward_points` | 1:N con `UserMission` |
 | **UserMission** | Tabla de enlace que registra la finalización de una misión por un usuario. | `user_id`, `mission_id`, `completed_at` | N:1 con `User`, N:1 con `Mission` |
 | **Achievement** | Define un logro a largo plazo. | `id`, `name`, `description` | 1:N con `UserAchievement` |
-| **UserAchievement** | Tabla de enlace que registra la obtención de un logro por un usuario. | `user_id`, `achievement_id`, `unlocked_at` | N:1 con `User`, N:1 con `Achievement` |
-| **UserProgress** | Almacena el estado narrativo y de arquetipo del usuario. | `user_id`, `current_story_node`, `unlocked_fragments`, `archetype` | 1:1 con `User` |
+| **UserAchievement**| Tabla de enlace que registra la obtención de un logro por un usuario. | `user_id`, `achievement_id`, `unlocked_at` | N:1 con `User`, N:1 con `Achievement` |
+| **UserProgress** | Almacena el estado narrativo, de arquetipo y de personalidad de Diana para el usuario. | `user_id`, `diana_state`, `dominant_archetype`, `resonance_score`, `last_interaction_at` | 1:1 con `User` |
 
 ---
 
 ## 3. Definición de Modelos
 
-A continuación se presentan los modelos de SQLAlchemy propuestos.
+A continuación se presentan los modelos de SQLAlchemy propuestos, **integrando la lógica del `diseñotecnico.md`**.
 
 ### Estructura de los Modelos
 
 ```python
 # Propuesta para src/database/models.py
 from sqlalchemy import (Column, Integer, String, DateTime, ForeignKey, JSON,
-                        create_engine)
+                        create_engine, Float)
 from sqlalchemy.orm import relationship, declarative_base
 from datetime import datetime
 
@@ -71,9 +71,18 @@ class UserProgress(Base):
     __tablename__ = 'user_progress'
     
     user_id = Column(Integer, ForeignKey('users.id'), primary_key=True)
+    
+    # --- Campos para la Historia ---
     current_story_node = Column(String, nullable=True)
     unlocked_fragments = Column(JSON, default=list, nullable=False)
-    archetype = Column(String, nullable=True, comment="Arquetipo dominante del usuario")
+    
+    # --- Campos para el Sistema de Personalidad (diseñotecnico.md) ---
+    diana_state = Column(String, default='Enigmática', nullable=False, comment="Estado actual de Diana: Vulnerable, Enigmática, etc.")
+    dominant_archetype = Column(String, nullable=True, comment="Arquetipo dominante del usuario: El Sensualista, etc.")
+    secondary_archetypes = Column(JSON, default=list, nullable=False, comment="Otros arquetipos detectados")
+    resonance_score = Column(Float, default=0.0, nullable=False, comment="Puntaje de resonancia emocional")
+    significant_interactions = Column(JSON, default=list, nullable=False, comment="Registro de interacciones clave")
+    last_interaction_at = Column(DateTime, default=datetime.utcnow)
     
     # Relación
     user = relationship("User", back_populates="progress")
@@ -82,7 +91,7 @@ class Mission(Base):
     __tablename__ = 'missions'
     
     id = Column(Integer, primary_key=True)
-    name = Column(String, unique=True, nullable=False, comment="Identificador único, ej: 'daily_login'")
+    name = Column(String, unique=True, nullable=False, index=True, comment="Identificador único, ej: 'daily_login'")
     description = Column(String, nullable=False)
     reward_points = Column(Integer, nullable=False)
     
@@ -125,9 +134,9 @@ class UserAchievement(Base):
 
 ### Justificación y Consideraciones
 
-- **Normalización:** Se utilizan tablas de enlace (`UserMission`, `UserAchievement`) para crear relaciones N:N entre usuarios y misiones/logros, evitando la duplicación de datos. Esto sigue la Tercera Forma Normal (3NF).
-- **Integridad:** El uso de `ForeignKey` asegura la integridad referencial a nivel de base de datos. Si un usuario es eliminado, `cascade="all, delete-orphan"` eliminará sus registros asociados.
-- **Tipos de Datos:** Se utiliza `JSON` en `UserProgress` para `unlocked_fragments`, ofreciendo flexibilidad para almacenar una lista de identificadores de fragmentos de historia.
+- **Integración de Personalidad:** El modelo `UserProgress` ahora contiene campos clave del `diseñotecnico.md`. `diana_state` almacena el estado actual de la IA, `dominant_archetype` guarda el perfil del usuario, y `resonance_score` cuantifica la conexión emocional. Esto permite que el motor de respuesta consulte directamente la base de datos para adaptar el comportamiento de Diana.
+- **Flexibilidad:** El uso de `JSON` para `secondary_archetypes` y `significant_interactions` proporciona la flexibilidad necesaria para almacenar listas de datos complejos sin necesidad de crear tablas adicionales, lo cual es adecuado para este tipo de metadatos.
+- **Normalización:** Se mantienen las tablas de enlace (`UserMission`, `UserAchievement`) para relaciones N:N, asegurando una buena estructura de base de datos.
 
 ---
 
@@ -136,10 +145,6 @@ class UserAchievement(Base):
 - **ORM a utilizar:** **SQLAlchemy** ya está en el proyecto y es una excelente elección. Se debe continuar con él.
 - **Patrones de diseño:** Se recomienda introducir un **Patrón Repositorio**. Cada modelo tendría su repositorio (ej. `UserRepository`) que manejaría la lógica de acceso a datos (sesiones, commits, rollbacks). Esto aislaría los servicios de la implementación de la base de datos.
 - **Índices recomendados:** Se deben añadir índices a todas las claves foráneas (`user_id`, `mission_id`, etc.) y a campos utilizados en búsquedas frecuentes como `missions.name`.
-    ```python
-    # Ejemplo en el modelo Mission
-    name = Column(String, unique=True, nullable=False, index=True)
-    ```
 - **Migraciones necesarias:** Es **crítico** integrar **Alembic**. Sin él, cualquier cambio en los modelos requerirá una gestión manual de la base de datos, lo cual es propenso a errores.
 
 ---
@@ -152,41 +157,35 @@ class UserAchievement(Base):
     - `User` (1) <--> (N) `UserAchievement` (N) <--> (1) `Achievement`
 - **Jerarquía y Dependencias:**
     - `User` es el modelo central.
-    - `Mission` y `Achievement` son modelos maestros que definen el contenido.
-    - `UserMission`, `UserAchievement` y `UserProgress` dependen de `User` y almacenan datos específicos de la actividad del usuario.
-- **Flujo de Datos Principal (Ejemplo: Completar Misión):**
-    1. El `handler` de Telegram recibe un evento (ej. un mensaje).
-    2. Llama a `MissionService.complete_mission('send_message')`.
-    3. `MissionService` consulta la tabla `missions` para obtener el ID de la misión.
-    4. Luego, inserta un nuevo registro en la tabla `user_missions` con el `user_id`, `mission_id` y la fecha.
-    5. Si la inserción es exitosa, publica un evento `mission_completed`.
-    6. Un listener (ej. `PointsService`) consume el evento y actualiza el campo `points` en la tabla `users`.
+    - `UserProgress` ahora contiene el "cerebro" del estado de la interacción de cada usuario.
+- **Flujo de Datos Principal (Ejemplo: Respuesta de Diana):**
+    1. El `handler` de Telegram recibe un mensaje del usuario.
+    2. Llama a un nuevo servicio, `PersonaService`.
+    3. `PersonaService` lee el `UserProgress` del usuario desde la base de datos.
+    4. Analiza el mensaje entrante (longitud, palabras clave, etc.) y actualiza los campos `resonance_score`, `dominant_archetype` y `last_interaction_at`.
+    5. Basado en estos datos y en el `diana_state` actual, selecciona una nueva respuesta y actualiza el `diana_state` si es necesario.
+    6. Guarda los cambios en el registro `UserProgress`.
+    7. Envía la respuesta seleccionada al usuario.
 
 ---
 
 ## 6. Plan de Implementación
 
-1.  **Configurar Alembic:**
-    - `pip install alembic`
-    - `alembic init migrations`
-    - Configurar `alembic.ini` y `env.py` para que apunten a la base de datos y a los modelos de `Base`.
+1.  **Configurar Alembic:** (Si no se ha hecho) `pip install alembic`, `alembic init migrations`, y configurar.
 2.  **Actualizar Modelos:** Reemplazar el contenido de `src/database/models.py` con el código propuesto en la sección 3.
-3.  **Crear Migración Inicial:**
-    - `alembic revision --autogenerate -m "Crear estructura inicial de modelos"`
-    - Revisar el script de migración generado para asegurar que es correcto.
-    - `alembic upgrade head` para aplicar los cambios a la base de datos.
-4.  **Refactorizar Servicios:**
-    - Modificar `MissionService` para que use `Session` de SQLAlchemy para consultar y escribir en las tablas `missions` y `user_missions`. Eliminar los diccionarios en memoria.
-    - Crear los servicios faltantes (`AchievementService`, `StoryService`) que operen sobre los nuevos modelos.
-5.  **Implementar Repositorios (Opcional pero recomendado):**
-    - Crear una clase base `Repository` y luego implementaciones concretas como `UserRepository`.
-6.  **Pruebas:**
-    - Escribir pruebas de integración que utilicen una base de datos de prueba para verificar que los servicios interactúan correctamente con la base de datos (ej. que al completar una misión se crea el registro en `user_missions` y se suman los puntos en `users`).
+3.  **Crear Migración:**
+    - `alembic revision --autogenerate -m "Integrar modelos de personalidad y arquetipo"`
+    - Revisar el script y aplicar con `alembic upgrade head`.
+4.  **Crear/Refactorizar Servicios:**
+    - Crear un `PersonaService` que implemente la lógica de `diseñotecnico.md`, interactuando con el modelo `UserProgress`.
+    - Refactorizar los servicios existentes para que usen la sesión de la base de datos.
+5.  **Pruebas:**
+    - Añadir pruebas para el `PersonaService`, simulando diferentes entradas de usuario y verificando que el `diana_state` y el `archetype` se actualizan correctamente en la base de datos de prueba.
 
 ---
 
 ## 7. Recomendaciones Adicionales
 
-- **Mejores Prácticas:** Utilizar Pydantic para definir los esquemas de la API (lo que entra y sale de los servicios) y SQLAlchemy para la representación de la base de datos. Un repositorio puede encargarse de la traducción entre ambos.
-- **Escalabilidad:** La arquitectura propuesta es escalable. La base de datos relacional manejará grandes volúmenes de datos de manera eficiente, especialmente con los índices adecuados.
-- **Mantenibilidad:** La separación de responsabilidades (Servicios, Repositorios, Modelos) y el uso de Alembic mejorarán drásticamente la mantenibilidad del código a largo plazo.
+- **Mejores Prácticas:** Utilizar Pydantic para definir los esquemas de la API y SQLAlchemy para la base de datos. Un repositorio puede traducir entre ambos.
+- **Escalabilidad:** La arquitectura es escalable. El `UserProgress` centraliza los datos de estado, lo que facilita su consulta y actualización.
+- **Mantenibilidad:** La nueva estructura es más mantenible porque alinea directamente la implementación de la base de datos con los conceptos del diseño técnico.
