@@ -17,11 +17,13 @@ async def seed_command(message: types.Message):
 
     await message.reply("Iniciando el proceso de siembra de la base de datos...")
     try:
-        session = await get_db_session()
-        try:
-            await seed_initial_data(session)
-            await message.reply("Base de datos sembrada exitosamente.")
-        finally:
-            await session.close()
+        async for session in get_db_session():
+            try:
+                await seed_initial_data(session)
+                await message.reply("Base de datos sembrada exitosamente.")
+            except Exception as e:
+                await message.reply(f"Error al sembrar la base de datos: {e}")
+            finally:
+                await session.close()
     except Exception as e:
         await message.reply(f"Error al sembrar la base de datos: {e}")
