@@ -7,7 +7,13 @@ from src.database.seeds import seed_initial_data
 router = Router()
 
 @router.message(Command("seed"))
+import logging
+
+logger = logging.getLogger(__name__)
+
+@router.message(Command("seed"))
 async def seed_command(message: types.Message, session: AsyncSession): # Inyectar la sesión
+    logger.info(f"Comando /seed recibido de usuario: {message.from_user.id}")
     """Handles the /seed command to populate the database."""
     user_id = message.from_user.id
     # For security, you might want to restrict this command to specific user IDs (e.g., admins)

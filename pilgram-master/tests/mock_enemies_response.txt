@@ -1,0 +1,40 @@
+- Name: Bloodfiend Marauder
+  Description: A hulking figure shrouded in tattered cloaks, its eyes glow with a malevolent crimson light. It wields a jagged blade tainted by the blood of its victims.
+  Win text: The Bloodfiend Marauder collapses to the ground, its glowing eyes fading to darkness as you stand victorious.
+  Loss text: The Bloodfiend Marauder's blade cuts through the air, finding its mark in your chest. Darkness overtakes you as your vision fades.
+- Name: Wasteland Wendigo
+  Description: A gaunt, skeletal creature with flesh pulled tight over its bones. Its elongated limbs end in razor-sharp claws, and its hungering gaze fixes on you with m
+  Win text: The Wasteland Wendigo lets out a shrill, anguished cry as its form crumbles to dust, leaving only a bitter wind in its wake.
+  Loss text: The Wasteland Wendigo's claws rake across your skin, draining the warmth from your body as you succumb to its insatiable hunger.
+- Name: Shadow Stalker
+  Description: A cloaked figure that flickers in and out of existence, leaving behind a trail of darkness and whispers. Its hands are like claws, ready to strike from the
+  Win text: The Shadow Stalker dissipates into wisps of shadow, defeated by your unwavering resolve.
+  Loss text: The Shadow Stalker's dark tendrils envelop you, pulling you into an abyss of eternal darkness from which there is no escape.
+- Name: Thorned Revenant
+  Description: A spectral figure wrapped in thorny vines that writhe and twist with a life of their own. Its empty eyes fixate on you with a haunting intensity.
+  Win text: The Thorned Revenant lets out a mournful wail as its spectral form dissipates, the thorns crumbling to dust at your feet.
+  Loss text: The Thorned Revenant's vines coil around you, piercing your flesh with their barbed thorns, binding you to its eternal suffering.
+- Name: Dustwraith Harbinger
+  Description: An ethereal being cloaked in swirling dust and shadow, its form barely visible amid the ever-shifting sands. Its gaze pierces through you with a cold, calc
+  Win text: The Dustwraith Harbinger fades into the swirling dust, its presence vanishing like a mirage in the wind.
+  Loss text: The Dustwraith Harbinger's shadowy tendrils reach out, pulling you into a vortex of swirling dust and darkness, erasing your existence.
+- Name: Nightshade Banshee
+  Description: A wraith-like figure wreathed in ghostly mist, its unearthly wail pierces the stillness of the night. Its eyes gleam with an otherworldly sorrow.
+  Win text: The Nightshade Banshee's spectral form dissipates into the night air, its haunting cries silenced at last.
+  Loss text: The Nightshade Banshee's mournful wail pierces your very soul, filling you with a profound sense of despair as you fade into the darkness.
+- Name: Gloomspire Necromancer
+  Description: A figure robed in tattered garments, its hands crackling with dark energy as it summons forth the undead from the cursed earth. Its eyes glow with an unhol
+  Win text: The Gloomspire Necromancer's dark magic falters, the undead minions collapsing as their master falls to your relentless assault.
+  Loss text: The Gloomspire Necromancer's dark spells overwhelm you, binding your soul to the cursed earth as you become one of its unwilling minions.
+- Name: Vilespawn Harpy
+  Description: A grotesque creature with the body of a woman and the wings of a vile beast, its talons sharp and dripping with poison. Its shrill cries echo through the d
+  Win text: The Vilespawn Harpy's screeches fall silent as its twisted form crumples to the ground, its poison no match for your resilience.
+  Loss text: The Vilespawn Harpy's talons tear through your flesh, injecting its venom into your veins as darkness clouds your vision.
+- Name: Duskwalker Shade
+  Description: A shadowy figure that moves with unnatural grace, its form obscured by darkness. Its eyes gleam with a malevolent intelligence as it stalks its prey.
+  Win text: The Duskwalker Shade fades into the shadows, defeated by your unwavering light in the darkness.
+  Loss text: The Duskwalker Shade's shadowy tendrils wrap around you, pulling you into an abyss of eternal night where no light can penetrate.
+- Name: Soulflayer Wraith
+  Description: A spectral being draped in tattered rags, its hands shimmering with an ethereal energy that drains the very life force from its victims. Its eyes burn with
+  Win text: The Soulflayer Wraith's spectral form dissipates, its hunger for souls left unfulfilled as you stand triumphant.
+  Loss text: The Soulflayer Wraith's ethereal touch saps the life from your body, leaving you drained and lifeless as your soul is consumed by its insatiable hunger.

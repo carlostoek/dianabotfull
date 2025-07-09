@@ -1,0 +1,240 @@
+Pilgram is an *idle adventure RPG with multiplayer elements* and it has quite a few mechanics.
+Let's tackle them in sections:
+
+♦️♦️*Players*♦️♦️
+that's you! Players are the most complex part of Pilgram in terms of stats, so here's a short recap:
+
+🔷 *Level*: Shows how experienced your character is, influences your success rate on quests (formula follows later).
+
+🔷 *Boromian Alloy*: The money of the world of Borom. Generally abbreviated as BA.
+
+🔷 *XP*: Reach a certain amount and your character will level up. Doing anything in the game grants you XP.
+The amount of xp required to *level up* is calculated with the *formula*:
+`XP = 100 x lv^2 + 1000 x lv`, where `lv` is your current level.
+
+🔷 *Gear level*: You current gear level, influences your success rate on quests & your HP.
+Upgrading your gear costs money, the *upgrade cost* is calculated with the following *formula*:
+`COST = 50 x lv^2 + 1000 x lv` where `lv` is the current level of your gear.
+
+🔷 *HP*: The amount of health you have. If it reaches zero during a quest you'll fail it.
+The amount of base hp you have is determined by:
+`HP = (level x 10 + gear level x 5 + vitality x 5) + [equipment bonuses]`
+
+🔷 *Home level*: You current home level, influences events rewards (formula follows later).
+Upgrading your home costs money, the *upgrade cost* is calculated with the *formula*:
+`COST = 100 x lv^2 + 5000 x lv` where `lv` is the current level of your home.
+
+🔷 *Stance*: Your current stance, determines how you behave in combat:
+- Balanced: A good mix of offence and defence.
+- Safe: More dodges than attacks, very few heavy attacks.
+- Reckless: All in on offence.
+
+🔷 *Vocations*: Basically classes that give you various bonuses. You can upgrade the level of your vocations using BA.
+
+🔷 *Artifact pieces*: Used to assemble artifacts, explained later.
+
+🔷 *Renown*: Does nothing, used for rankings. It is gained by playing non-gambling mini-games & completing quests.
+
+🔷 *Total Base Damage/Resist*: The sum of all your equipment contributions for damage & resistance. Not affected by modifiers.
+
+🔷 *Sanity*: Used to hunt. The more you hunt the lower it goes. If you get it too low bad stuff starts to happen...
+
+🔷 *Stats*: Used to scale the damage/resistance of most equipments, your HP, your eldritch power & the time taken to complete quests.
+Here's what each stat influences:
+- Vitality: your HP
+- Strength: damage with certain weapons
+- Skill: damage with certain weapons
+- Toughness: defence with certain armor pieces
+- Attunement eldritch power & damage with certain weapons
+- Mind: sanity & defence with certain armor pieces
+- Agility: time you take to finish quests & defence with certain armor pieces
+
+
+♦️♦️*Quests*♦️♦️
+Your main source of income & xp. *Succeeding in a quest* depends on a D20 throw:
+
+if you *roll 1* you *fail* the quest.
+if you *roll 19* or more you *succeed* the quest.
+For the *in between numbers*, the minimum value that your roll has to beat is calculated using the *formula*:
+
+`MIN ROLL = 6 + zl - pl + (1.2 x zl - (gl + pl) / 2) x sqrt((4 / zl) x (qn - 1))`
+where `zl` = zone level, `pl` = player level, `gl` = gear level, `qn` = quest number.
+
+_Note: quest number is the amount of quests you did in the zone._
+_Note: zone level is the minimum required level for the zone, NOT the zone number._
+
+Once you fail a quest you can't retry it, but don't worry about it since there is literally an infinite amount of them.
+
+The formula for quest rewards is a bit simpler:
+`MULT = zl x qn + (guild level)
+rand = rand(1 to 50)
+XP REWARD = 950 x MULT + rand
+MONEY REWARD = 760 x MULT + rand`
+
+Quests also provide *prestige* for the guild you are currently in.
+The amount of prestige a quest gives upon successful completion is determined by the *formula*:
+
+`PRESTIGE = zone level + quest number`
+
+Quest duration follows the formula:
+
+`DURATION = 1 day + (1 hour x zone level) + (2 hours x quest number) + (3 hours x rand(0 to zone level)) - (30 min x agility)`
+
+On quest success you have a 20% chance of finding a piece of an artifact (explained later).
+Completing quests also grants you essences, which can be used when ascending (explained later).
+
+----
+
+♦️♦️*Guilds*♦️♦️
+Clubs for you and your friends! Or ways to "compete" with others.
+Guilds can hold 4 players per level; The maximum level for guilds is 10.
+Creating a guild costs 1000, but upgrading it is extremely expensive:
+
+`COST = 10000 x lv^2 + 1000 x lv` where `lv` = guild level
+
+eah level grants +1 quest reward multiplier and:
+- Up until level 5: +4 guild members (so the cap is 20).
+- Level 6: Sold items yield double the Boromian Alloy.
+- Level 7: Crafted items at the smithy always have one modifier.
+- Level 8: 50% discount at the market.
+- Level 9: 50% discount at the smithy.
+- Level 10: +5 quest reward multiplier (for a total of 15).
+
+Guild prestige does nothing: the higher it is, the higher your guild will be on the ranking. That's it.
+
+The *tourney score* is used to compete in the biweekly Guild Tourney.
+It is reset every 2 weeks & at reset time the members in the *top 3* guilds get some money as a reward:
+
+1st = 10000 Boromian Alloy
+2nd = 5000 Boromian Alloy
+3rd = 1000 Boromian Alloy
+
+Tourney score is scaled depending on guild size: The bigger the guild is, the less a completed quest is worth.
+
+an artifact piece is also rewarded to the owner of the first placed guild.
+Tourney scores depend on how many members a guild has; The more members there are, the less a single completed quest is worth.
+
+♦️♦️*Events*♦️♦️
+The random updates you are sent every once in a while.
+You get events even while not on a quest, so you can still (really slowly) level up even by staying in town.
+Both xp & money rewards follow the formula:
+
+if the player's level is higher or equal to (zone level - 3):
+`REWARD = (zl + 2 + hl) * rand(1 to 10)`
+else
+`EWARD = (2 + hl) x rand(1 to 10)`
+where `zl` = zone level, `hl` = player home level.
+
+Sometimes you can meet other players going through their own journey.
+This gives you XP following the formula:
+
+if not in town:
+`XP REWARD = 10 x zone id x highest level between the 2 players meeting`
+if in town:
+`XP REWARD = 10`
+
+♦️♦️*Minigames*♦️♦️
+You can play these to earn some more money & xp, plus they are fun!
+We won't go into detail here, you can use the command `list minigames` to see which minigames are available.
+Then use the command `explain minigame [minigame name]` to get more info about each minigame.
+The use the command `play [minigame name]` to, well, play the minigame.
+
+♦️♦️*Artifacts*♦️♦️
+Exceedingly rare mysterious artifacts you can craft with 8 artifact pieces, each artifact is unique & increases your maximum eldritch power by 10 (starts from 0).
+You can use your eldritch power to cast spells.
+Spells always use all your power; The more power they use, the more powerful they are.
+
+♦️♦️*QTEs*♦️♦️
+Acronym for "Quick Timed Events", are small prompts that you have a chance of getting when you get a notification for an event.
+Use the command `qte` [option] to respond to it before it expires.
+QTEs expire when the next event is sent to you, so you should have plenty of time to do them :)
+
+----
+
+♦️♦️*Equipment*♦️♦️
+Equipment is a very important part of you character, you can either find it while questing or craft if at the smithy.
+Equipment you find in during quests is much stronger than what you can craft at the smithy.
+You have 6 equipment slots on your character: Head, Chest, Legs, Arms, Primary & Secondary.
+Each equipped item gives you damage & resist boosts + modifiers if you have any on your equipment.
+You inventory size scales with your home level:
+`SIZE = 10 + [home level] x 4`
+
+Equipment can have 8 base damage/resistance stats:
+- Slash
+- Pierce
+- Blunt
+- Occult
+- Fire
+- Acid
+- Freeze
+- Electric
+
+The sum of all the stats determines your total base attack/defence.
+
+Equipment can have perks, which are powerful effects that range from simple damage percentage increases to giving you a shield that nullifies the first attack against you.
+There are more than 50 Perks of varying rarity in total.
+Perks will show up on the weapon name as stars.
+
+You can `reroll` items stats & perks for 20 times the value of the item in Boromian Alloy.
+You can `enchant` items to add a new perk to them for an artifact piece (you can't have more than 4 perks on an item).
+
+♦️♦️*Combat*♦️♦️
+Combat is a big part of questing in Pilgram, it can determine whether you complete or fail a quest & it rewards you with a lot of XP & BA.
+Your combat stats are mainly determined by your equipment which has damage and resist value + modifiers.
+Combat is turn based and it consists of mainly 5 actions that both participants can perform:
+- *Attack*: deal attacker damage - target defence damage to the target
+- *Dodge*: the next attack the dodger receives will deal [total delay]% damage to them (capped at 90%) (The minimum damage is 1)
+- *Take aim*: The performer aims for a weak spot, multiplying the damage of their next attack by 150%.
+- *Use consumable*: reserved to players, if a character's health is under 50% they'll have a chance to use healing items to automatically restore health
+- *Lick wounds*: mostly used by enemies but can also be used by players if their cult has the "Animal instincts" trait. The performer restores an HP amount equal to their level.
+
+Attacking simply subtracts the target defence from the attacker's attack for each stat, so for example even if you have a very high slash resistance, a fire attack will pass right through your defence and will still hurt you.
+
+If you die during combat and you have a revive in your inventory, the revive will be automatically used by your character.
+
+If you win you get `40 x enemy level` XP & BA plus you have a chance to get an artifact piece if you force the combat.
+Note that forcing combat gives you increasingly strong enemies the closer you get to finishing a quest.
+
+Weight is quite important during combat, infact it determines how much stamina you use when attacking. The more weight you have on you, the more it will take for you to recover.
+
+♦️♦️*Consumables*♦️♦️
+Consumable items are important for restoring your HP during quests, boosting your damage or even reviving you.
+You can check out the dailiy items on sale at the market & buy them there. Note that you can hold a maximum of 10 consumables.
+
+Remember to bring plenty of healing items on quests as HP automatically regenerates very slowly!
+
+♦️♦️*Auctions*♦️♦️
+The auctions house is available in town, use it to auction your powerful items or bid on other player's powerful items.
+
+----
+
+♦️♦️*Ascension*♦️♦️
+Endgame mechanic, use 10 artifact pieces to Ascend, which resets your level, gear level, Boromian Alloy & destroys all of your equipment (except for relics).
+Ascending uses up your essences to permanently increase your stats and it also gives you a flat 25% XP bonus per ascension.
+Essences aren't used in a linear way when ascending, the way they are used follows the nth triangle number formula (1 + 2 + 3 + 4 + ... + n) so:
+
+When ascending
+to increase a stat by 1 you only use 1 essence
+to increase a stat by 2 you use 3 essences
+to increase a stats by 3 you use 6 essences
+and so on
+
+You keep the leftover essences.
+This encourages not grinding too much in a single ascension.
+
+Ascending requires you to be at least level `30 + (10 x ascension level)`.
+
+♦️♦️*Raids*♦️♦️
+Endgame mechanic, Co-op missions that you can only do with your guild which involve group combat & rewards participants with relics.
+Each person that wants to participate in a raid has to be in town when the raid starts.
+
+An equal amount of monsters will spawn to the amount of participants of the raid & each monster will be scaled to a specific raid participant.
+Raids last a single day, no matter the zone; At the end of the raid a legend will spawn along with the usual group of monsters, acting as a final boss for the raid.
+
+If the guild leader dies then the raid fails.
+
+♦️♦️*Pets*♦️♦️
+Basically mini players you can bring with you on your adventures.
+You can only have a single pet equipped at a time.
+Every pet has to be captured in a zone, it will have that zone's modifiers.
+Buy consumables with good bait power to increase your chances of catching a pet.

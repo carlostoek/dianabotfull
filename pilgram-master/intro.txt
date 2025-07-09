@@ -1,0 +1,18 @@
+Greetings stranger. Welcome to the grim & dark world of {wn}.
+
+Test your strength and your gear by going on endless quests and become the ultimate adventurer.
+Gain wealth ({mn}) and experience, join cults, meet friendly faces during your travels, acquire powerful gear & beautiful homes!
+
+You can do all that & more in Pilgram, you just have to create a character with the `create character` command!
+
+Then after that, use the `embark 1` command to begin your first quest!
+
+Wait a day or two and you'll be notified if you managed to finish the quest. In the meantime you'll get updates on what your character is doing.
+
+While you wait i highly suggest you check out the manual for the game. Bring it up with the `man 1` command.
+
+Enjoy!
+
+Use the `help` command to see all the commands you can use.
+
+And thanks for playing :)

@@ -1,0 +1,247 @@
+{
+  "world": {
+    "name": "Borom",
+    "city": {
+      "name": "Pilgrim's Rest",
+      "description": "somber and enigmatic town. The cobblestone streets are lined with ancient, ivy-covered buildings that whisper tales of a forgotten past."
+    }
+  },
+  "defaults": {
+    "player": {
+      "money": 100,
+      "gear": 1,
+      "home": 1
+    }
+  },
+  "guilds": {
+    "max_level": 10,
+    "players_per_level": 4,
+    "creation_cost": 1000,
+    "max_tax": 50,
+    "max_players": 20,
+    "switch_delay": "1d",
+    "raid_delay": "7d"
+  },
+  "modify_cost": 1000,
+  "money": {
+    "name": "Boromian Alloy",
+    "short name": "BA"
+  },
+  "quests": {
+    "base_xp_reward": 950,
+    "base_money_reward": 760
+  },
+  "artifacts": {
+    "required_pieces": 8,
+    "power_per_artifact": 5,
+    "power_per_day": 150
+  },
+  "crafting": {
+    "reroll_mult": 18
+  },
+  "hunt": {
+    "sanity_cost": 50
+  },
+  "ascension": {
+    "cost": 10,
+    "minimum_level": 30,
+    "level_increase_per_ascension": 10
+  },
+  "market": {
+    "max_items": 12
+  },
+  "pet": {
+    "rename_cost": 500
+  },
+  "minigames": {
+    "hands": {
+      "min_buy_in": 5,
+      "max_buy_in": 50,
+      "payout": 1.5,
+      "xp_reward": 2,
+      "cooldown": 120,
+      "explanation": "_\"Do not hold the pilgrim's hands for he is blinded by faith\"_\n\n2 player game played with *3 d6 each*.\n\nBoth you & the other player choose a *target number between 3 and 18*, then you roll until someone wins.\n\nIf a player gets either *5 or 10 they lose*. If a player gets their *target number* with either *all 3 or just 2 of their dice* they win.\n\nPays 150% of the pot."
+    },
+    "fate": {
+      "min_buy_in": 50,
+      "max_buy_in": 200,
+      "payout": 2,
+      "xp_reward": 7,
+      "cooldown": 300,
+      "explanation": "_\"The pilgrim's fate is to perpetually walk the mortal plane, undying in a dying world... Lucky, some might say...\"_\n\n2 player dice game. Roll a d13 3 times.\n\nIf a player exceeds 27 they lose.\n\nWins who gets the highest score without exceeding 27."
+    },
+    "open": {
+      "xp_reward": 5,
+      "money_reward": 5,
+      "explanation": "_\"Some doors get possessed by fragments of their dead former owners and only open when a word they identified in life with is whispered in the key hole\"_\n\nGuess a random word in the given amount of tries.",
+      "renown": 2,
+      "cooldown": 300
+    },
+    "illusion": {
+      "xp_reward": 20,
+      "money_reward": 20,
+      "cooldown": 8000,
+      "explanation": "_\"Some walls are mere illusions, but beware of dispelling them, you might not like what they hide...\"_\n\nNavigate a maze by typing 'n'(north), 's'(south), 'e'(east) & 'w'(west), or 'i'(idle) for a tick. Moving in a direction moves you until you hit a wall, the exit or an active trap.\n\nYou can optionally define the amount of steps you want to take, for example:\n`n 2` will walk 2 steps to the north.\n`n` will walk north until you hit a wall.\n\nNote that both the previous commands will consume a single turn.\n\nBeware of spike traps that activate & deactivate each turn.\n\nFinish the maze in the given number of turns",
+      "renown": 1
+    },
+    "war": {
+      "xp_reward": 10,
+      "money_reward": 10,
+      "cooldown": 300,
+      "explanation": "_\"If you know the enemy and know yourself you need not fear the results of a hundred battles.\"_\n\nChoose what troop to deploy at the same time as your opponent.\n\nCavalry beats Archers\nArchers beat Spears\nSpears beats Cavalry",
+      "renown": 1
+    },
+    "trap": {
+      "xp_reward": 20,
+      "money_reward": 20,
+      "cooldown": 8000,
+      "explanation": "_\"I used to be an adventure like you...\"_\n\nNavigate a trap room by typing 'n'(north), 's'(south), 'e'(east) & 'w'(west), or 'i'(idle) for a tick. Avoid getting hit by arrows.\n\nSurvive for the given number of turns.",
+      "renown": 1
+    }
+  },
+  "meeting events": {
+    "town": [
+      "visit the tavern together, sharing stories of your adventures.",
+      "check out the market stalls together.",
+      "train together.",
+      "play a couple games of the royal game of Ur.",
+      "walk on the town walls together, taking in the view.",
+      "hunt plague rats with flaming bolts.",
+      "visit the smithy together to perform maintenance on your equipment",
+      "exchange trinkets you collected during your adventures",
+      "spend some time together, enjoying each other's company.",
+      "accompany them to the cemetery to mourn your loved ones.",
+      "talk about conspiracy theories for an hour. You are convinced they are all true.",
+      "greet them tiredly, then you immediately go home where you take an invigorating nap.",
+      "spot a Pilgrim watching you two talk. He sees you are bound by the Ouroboros contract. He sees your chains.",
+      "kill some time hunting pigeons together.",
+      "kill some slimy monsters hiding in the town's sewers."
+    ],
+    "zones": [
+      "spend some time around a campfire roasting some freshly hunted small game.",
+      "walk together for a bit, sharing knowledge about the area.",
+      "silently nod to each other, for there are monsters nearby.",
+      "clear the way ahead together, protecting each other from danger.",
+      "gather supplies to prepare for the dangers ahead.",
+      "polish your equipment in silence, each other's backs",
+      "play a couple of games of 'Hands', as it is a traditional game most played by adventurers on a quest.",
+      "help them open a particularly stubborn chest. It turns out it was a mimic, so you kill it together.",
+      "help each other climb a particularly tall wall.",
+      "throw rocks at some monsters below you. They can't reach you and they make funny noises when hit.",
+      "share a pemmican & hardtack meal since lighting a fire was not an option.",
+      "hide from them until they leave. You are not feeling too sociable right now.",
+      "come across a Pilgrim, undying & blindly following the path his faith lays for him. You both watch him, mesmerized.",
+      "do the secret adventurer salute. They reciprocate.",
+      "trade some supplies.",
+      "hide together from a pack of monsters approaching your position",
+      "help each other move some debris from a blocked passageway.",
+      "carve your names into a wall, as way to leave a mark on this cruel world.",
+      "gossip about other adventurers.",
+      "finish off a dying animal & cook it's remains.",
+      "draw a beautiful portrait of them.",
+      "fistbump each-other."
+    ]
+  },
+  "spells": {
+    "mida": {
+      "name": "Mida's touch",
+      "description": "Create Boromian Alloy from thin air.",
+      "power": 10,
+      "level": 0
+    },
+    "bones": {
+      "name": "Bone recall",
+      "description": "Recall the experiences of the bone's former owner.",
+      "power": 10,
+      "level": 0
+    },
+    "displacement": {
+      "name": "Eldritch displacement",
+      "description": "Briefly travel through another dimension where time and space are distorted, gaining time on your quest.",
+      "power": 20,
+      "level": 0
+    },
+    "heal": {
+      "name": "Eldritch Healing",
+      "description": "Heal yourself for [power used]% HP.",
+      "power": 10,
+      "level": 0
+    },
+    "glitch": {
+      "name": "Alloy glitch",
+      "description": "The next time you earn money the amount will be multiplied by 1.5 times for every 30 power used.",
+      "power": 30,
+      "level": 1
+    },
+    "might": {
+      "name": "Eldritch Might",
+      "description": "Be much stronger in the next combat.\nEffect scales with amount of power used (40 for 1.5x, 80 for 2x, 120 for 2.5x).",
+      "power": 30,
+      "level": 1
+    },
+    "swift": {
+      "name": "Eldritch Swiftness",
+      "description": "Be much faster in the next combat, ignore weight.\nEffect scales with amount of power used (40 for -15 kg, 80 for -30 kg, 120 for -45 kg).",
+      "power": 30,
+      "level": 1
+    },
+    "ritual": {
+      "name": "Summoning Ritual",
+      "description": "Enemy in the next encounter is going to be much stronger.\nEffect scales with amount of power used (50 for +5 levels, 100 for +10 levels).",
+      "power": 30,
+      "level": 1
+    },
+    "peace": {
+      "name": "Peace of Mind",
+      "description": "Restore [power used] sanity of the target.",
+      "power": 20,
+      "level": 1
+    },
+    "terror": {
+      "name": "Terrifying presence",
+      "description": "Decrease the target's sanity by [power used].",
+      "power": 20,
+      "level": 1
+    },
+    "blood": {
+      "name": "Blood boil",
+      "description": "Lose [power used] HP & remove [power used] HP from target.",
+      "power": 20,
+      "level": 1
+    },
+    "hex": {
+      "name": "Ancient Hex",
+      "description": "Hex someone of your choosing, they will have a disadvantage finishing their next quest. Send the name after 'hex'. Double the effect if you use 100 power.",
+      "power": 50,
+      "level": 2,
+      "args": 1
+    },
+    "bless": {
+      "name": "Ancient Blessing",
+      "description": "Bless someone of your choosing, they will have an advantage finishing their next quest. Send the name after 'bless'. Triple the effect if you use 100 power.",
+      "power": 50,
+      "level": 2
+    },
+    "ironflesh": {
+      "name": "Ironflesh Boon",
+      "description": "Set the target's HP to (100 + [power used])%.",
+      "power": 50,
+      "artifacts": 1,
+      "level": 2
+    },
+    "radiance": {
+      "name": "Radiance Boon",
+      "description": "Materialize a God Emperor's blessing in the target's satchel.",
+      "power": 50,
+      "artifacts": 1,
+      "level": 2
+    },
+    "supremacy": {
+      "name": "Supremacy Boon",
+      "description": "Give the target every combat buff.\nEffect scales with amount of power used (50 for 1.5x, 100 for 2x).",
+      "power": 50,
+      "artifacts": 1,
+      "level": 2
+    }
+  }
+}
