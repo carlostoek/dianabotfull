@@ -18,6 +18,7 @@ class User(Base):
     progress = relationship("UserProgress", back_populates="user", uselist=False, cascade="all, delete-orphan")
     missions = relationship("UserMission", back_populates="user", cascade="all, delete-orphan")
     achievements = relationship("UserAchievement", back_populates="user", cascade="all, delete-orphan")
+    point_transactions = relationship("PointTransaction", back_populates="user", cascade="all, delete-orphan")
 
     def __repr__(self):
         return f"<User(id={self.id}, username='{self.username}')>"
@@ -90,3 +91,17 @@ class UserAchievement(Base):
 
     def __repr__(self):
         return f"<UserAchievement(user_id={self.user_id}, achievement_id={self.achievement_id})>"
+
+class PointTransaction(Base):
+    __tablename__ = 'point_transactions'
+
+    id = Column(Integer, primary_key=True)
+    user_id = Column(BigInteger, ForeignKey('users.id'), nullable=False)
+    points = Column(Integer, nullable=False)
+    reason = Column(String, nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    user = relationship("User", back_populates="point_transactions")
+
+    def __repr__(self):
+        return f"<PointTransaction(user_id={self.user_id}, points={self.points}, reason='{self.reason}')>"
