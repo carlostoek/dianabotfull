@@ -9,6 +9,7 @@ from src.database.connection import init_db
 from src.telegram_bot.middleware import DbSessionMiddleware
 from src.telegram_bot.handlers.start import router as start_router
 from src.telegram_bot.handlers.game_handlers import router as game_router
+from src.telegram_bot.handlers.unrecognized_handlers import router as unrecognized_router
 from src.services.points_service import setup_points_listeners
 
 async def main():
@@ -30,6 +31,7 @@ async def main():
     # Registrar routers
     dp.include_router(start_router)
     dp.include_router(game_router)
+    dp.include_router(unrecognized_router)
 
     # Iniciar el bot
     print("Bot started...")
