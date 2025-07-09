@@ -1,14 +1,6 @@
 from aiogram import Router, types
 from aiogram.filters import Command
 import asyncio
-from src.database.connection import get_db_session
-from src.database.seeds import seed_initial_data
-
-router = Router()
-
-from aiogram import Router, types
-from aiogram.filters import Command
-import asyncio
 from sqlalchemy.ext.asyncio import AsyncSession # Importar AsyncSession
 from src.database.seeds import seed_initial_data
 
@@ -27,7 +19,5 @@ async def seed_command(message: types.Message, session: AsyncSession): # Inyecta
     try:
         await seed_initial_data(session) # Usar la sesión inyectada
         await message.reply("Base de datos sembrada exitosamente.")
-    except Exception as e:
-        await message.reply(f"Error al sembrar la base de datos: {e}")
     except Exception as e:
         await message.reply(f"Error al sembrar la base de datos: {e}")
