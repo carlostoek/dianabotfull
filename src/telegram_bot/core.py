@@ -13,11 +13,12 @@ class TelegramBot:
 
     def setup_handlers(self):
         # Aquí registraremos todos los handlers
-        from .handlers import user_handlers, admin_handlers, story_handlers, game_handlers
+        from .handlers import user_handlers, admin_handlers, story_handlers, game_handlers, seed_handlers
         self.dp.include_router(user_handlers.router)
         self.dp.include_router(admin_handlers.router)
         self.dp.include_router(story_handlers.router)
         self.dp.include_router(game_handlers.router)
+        self.dp.include_router(seed_handlers.router)
 
     async def start(self):
         await self.dp.start_polling(self.bot)
