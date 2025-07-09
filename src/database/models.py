@@ -1,6 +1,6 @@
 # src/database/models.py
 from sqlalchemy import (Column, Integer, String, DateTime, ForeignKey, JSON,
-                        Float)
+                        Float, BigInteger)
 from sqlalchemy.orm import relationship, declarative_base
 from datetime import datetime
 
@@ -9,7 +9,7 @@ Base = declarative_base()
 class User(Base):
     __tablename__ = 'users'
     
-    id = Column(Integer, primary_key=True, comment="Telegram User ID")
+    id = Column(BigInteger, primary_key=True, comment="Telegram User ID")
     username = Column(String, nullable=True)
     role = Column(String, default='free', nullable=False)
     points = Column(Integer, default=0, nullable=False)

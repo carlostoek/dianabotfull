@@ -44,22 +44,17 @@ source venv/bin/activate
 pip install -r requirements.txt
 ```
 
-## 5. Configurar y Ejecutar Migraciones de Base de Datos
+## 5. Gestión del Esquema de la Base de Datos (Fase de Desarrollo)
 
-El proyecto utiliza Alembic para gestionar el esquema de la base de datos. La configuración ya está hecha para leer la `DATABASE_URL` desde tu archivo `.env`.
+En esta fase de desarrollo inicial, el esquema de la base de datos se gestiona directamente a través de SQLAlchemy. Cada vez que el bot se inicia, se intentará crear todas las tablas definidas en `src/database/models.py` si no existen. Esto es útil para un desarrollo rápido donde el esquema cambia constantemente y no hay datos que preservar.
 
-Para verificar que la conexión funciona, puedes ejecutar:
+**Importante:** Si realizas cambios en los modelos y necesitas que se reflejen en la base de datos, deberás asegurarte de que las tablas antiguas sean eliminadas antes de iniciar el bot. Esto se puede hacer manualmente o, si `init_db()` está configurado para `drop_all` temporalmente, se hará automáticamente.
 
-```bash
-# Asegúrate de que tu entorno virtual esté activado
-venv/bin/alembic current
-```
-
-Si todo está correcto, no debería mostrar ningún error. Para aplicar el esquema inicial a tu base de datos, necesitarás generar y aplicar una migración (esto se cubrirá en la Fase 1 del desarrollo).
+Una vez que el esquema esté más estable y se necesite preservar datos, se integrará una herramienta de migración como Alembic.
 
 ## 6. Estructura de Modelos
 
-Los modelos de la base de datos están definidos en `src/database/models.py`. La configuración de Alembic en `migrations/env.py` ya está apuntando a estos modelos para la autogeneración de migraciones.
+Los modelos de la base de datos están definidos en `src/database/models.py`.
 
 ---
 
