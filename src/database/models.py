@@ -25,7 +25,7 @@ class User(Base):
 class UserProgress(Base):
     __tablename__ = 'user_progress'
     
-    user_id = Column(Integer, ForeignKey('users.id'), primary_key=True)
+    user_id = Column(BigInteger, ForeignKey('users.id'), primary_key=True)
     current_story_node = Column(String, nullable=True)
     unlocked_fragments = Column(JSON, default=list, nullable=False)
     diana_state = Column(String, default='Enigmática', nullable=False)
@@ -56,7 +56,7 @@ class Mission(Base):
 class UserMission(Base):
     __tablename__ = 'user_missions'
     
-    user_id = Column(Integer, ForeignKey('users.id'), primary_key=True)
+    user_id = Column(BigInteger, ForeignKey('users.id'), primary_key=True)
     mission_id = Column(Integer, ForeignKey('missions.id'), primary_key=True)
     completed_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, primary_key=True)
     
@@ -81,7 +81,7 @@ class Achievement(Base):
 class UserAchievement(Base):
     __tablename__ = 'user_achievements'
     
-    user_id = Column(Integer, ForeignKey('users.id'), primary_key=True)
+    user_id = Column(BigInteger, ForeignKey('users.id'), primary_key=True)
     achievement_id = Column(Integer, ForeignKey('achievements.id'), primary_key=True)
     unlocked_at = Column(DateTime, default=datetime.utcnow)
     
