@@ -4,3 +4,5 @@ pydantic
 pydantic-settings
 schedule
 aiogram[all]
+sqlalchemy
+alembic
