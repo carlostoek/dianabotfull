@@ -1,0 +1,107 @@
+{
+  "start": {
+    "text": "🌙 *El Encuentro Inicial*\n\nTe encuentras en un jardín nocturno bañado por la luz de la luna. Una figura emerge de entre las sombras... es Diana.\n\n_\"Has venido a buscarme... ¿pero sabes realmente lo que encontrarás?\"_\n\nSus ojos brillan con una mezcla de curiosidad y desafío.",
+    "choices": [
+      {
+        "id": "approach_confident",
+        "text": "Me acerco con confianza",
+        "next_scene": "confidence_path",
+        "impact": {
+          "diana_state": "provocadora",
+          "resonance_change": 2.0
+        }
+      },
+      {
+        "id": "approach_cautious",
+        "text": "Me acerco con cautela",
+        "next_scene": "caution_path", 
+        "impact": {
+          "diana_state": "enigmática",
+          "resonance_change": 1.0
+        }
+      }
+    ],
+    "meta": {
+      "is_initial": true,
+      "level": 1
+    }
+  },
+  "confidence_path": {
+    "text": "🔥 *Encuentro Directo*\n\nDiana sonríe ante tu confianza, pero hay algo peligroso en su mirada.\n\n_\"Interesante... No muchos se atreven a acercarse así. Esa confianza puede ser tu mayor fortaleza... o tu perdición.\"_\n\nSe acerca más, y sientes la intensidad de su presencia.",
+    "choices": [
+      {
+        "id": "maintain_confidence",
+        "text": "Mantener la confianza",
+        "next_scene": "bold_ending",
+        "impact": {
+          "diana_state": "admirativa",
+          "resonance_change": 3.0
+        }
+      },
+      {
+        "id": "show_vulnerability",
+        "text": "Mostrar vulnerabilidad",
+        "next_scene": "connection_ending",
+        "impact": {
+          "diana_state": "comprensiva",
+          "resonance_change": 2.5
+        }
+      }
+    ]
+  },
+  "caution_path": {
+    "text": "🌙 *Danza de Sombras*\n\nTu cautela la divierte. Diana inclina la cabeza, estudiándote como si fueras un rompecabezas fascinante.\n\n_\"Sabio... Aquellos que se acercan sin pensar a menudo se queman. Pero dime, ¿qué es lo que realmente temes encontrar?\"_\n\nHay algo maternal en su voz, pero también un dejo de decepción.",
+    "choices": [
+      {
+        "id": "admit_fear",
+        "text": "Admitir mis miedos",
+        "next_scene": "honest_ending",
+        "impact": {
+          "diana_state": "protectora",
+          "resonance_change": 4.0
+        }
+      },
+      {
+        "id": "deny_fear",
+        "text": "Negar cualquier miedo",
+        "next_scene": "pride_ending",
+        "impact": {
+          "diana_state": "distante",
+          "resonance_change": -1.0
+        }
+      }
+    ]
+  },
+  "bold_ending": {
+    "text": "⚡ *Reconocimiento*\n\nDiana te mira con algo que podría ser respeto.\n\n_\"Pocas veces encuentro a alguien que no se intimide ante mi presencia. Esa valentía... es rara y valiosa.\"_\n\n✨ Has ganado la admiración de Diana.\n🔮 Resonancia final alcanzada.",
+    "choices": [],
+    "meta": {
+      "is_ending": true,
+      "ending_type": "admiration"
+    }
+  },
+  "connection_ending": {
+    "text": "💫 *Conexión Auténtica*\n\nTu momento de vulnerabilidad crea un puente entre ambos.\n\n_\"Ah... ahí está la verdad. La fortaleza real viene de conocer nuestras debilidades y elegir ser valientes a pesar de ellas.\"_\n\n💖 Has formado una conexión genuina con Diana.\n🔮 Resonancia equilibrada alcanzada.",
+    "choices": [],
+    "meta": {
+      "is_ending": true,
+      "ending_type": "connection"
+    }
+  },
+  "honest_ending": {
+    "text": "🌸 *Sabiduría Compartida*\n\nDiana asiente con comprensión profunda.\n\n_\"El miedo no es el enemigo... es un consejero. Solo aquellos lo suficientemente sabios para escucharlo pueden verdaderamente crecer.\"_\n\n🌟 Has ganado la protección y sabiduría de Diana.\n🔮 Resonancia máxima alcanzada.",
+    "choices": [],
+    "meta": {
+      "is_ending": true,
+      "ending_type": "wisdom"
+    }
+  },
+  "pride_ending": {
+    "text": "❄️ *Distancia*\n\nDiana se aleja, su expresión volviéndose neutral.\n\n_\"Ya veo... Otro que prefiere las máscaras a la verdad. Quizás no estés listo para lo que tengo que ofrecer.\"_\n\n😔 Diana se ha distanciado de ti.\n🔮 Resonancia limitada.",
+    "choices": [],
+    "meta": {
+      "is_ending": true,
+      "ending_type": "distance"
+    }
+  }
+}
