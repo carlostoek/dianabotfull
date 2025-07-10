@@ -1,25 +1,27 @@
 # src/services/points_service.py
 from sqlalchemy.ext.asyncio import AsyncSession
 from src.database.repository import UserRepository, PointTransactionRepository
-from src.database.models import Mission
+from src.database.models import Mission, User
 from src.core.event_bus import event_bus
 
 class PointsService:
-    def __init__(self, session: AsyncSession):
-        self.user_repo = UserRepository(session)
-        self.transaction_repo = PointTransactionRepository(session)
-        self.session = session
+    def __init__(self, user_repo: UserRepository, transaction_repo: PointTransactionRepository):
+        self.user_repo = user_repo
+        self.transaction_repo = transaction_repo
 
-    async def award_points_for_mission(self, user_id: int, mission: Mission):
+    async def add_points(self, user_id: int, amount: int, reason: str = "Generic") -> None:
+        """
+        Add or remove points for a user and create a transaction record.
+        """
         user = await self.user_repo.get_user_by_id(user_id)
         if user:
-            user.points += mission.reward_points
+            user.points += amount
             await self.transaction_repo.create_transaction(
                 user_id=user_id,
-                points=mission.reward_points,
-                reason=f"Completed mission: {mission.name}"
+                points=amount,
+                reason=reason
             )
-            await self.session.commit()
+            # The session commit should be handled by the middleware
 
     async def get_points(self, user_id: int) -> int:
         """
@@ -28,9 +30,18 @@ class PointsService:
         user = await self.user_repo.get_user_by_id(user_id)
         return user.points if user else 0
 
+    async def award_points_for_mission(self, user_id: int, mission: Mission):
+        """
+        Award points for completing a mission.
+        """
+        await self.add_points(user_id, mission.reward_points, f"Completed mission: {mission.name}")
+
 def setup_points_listeners():
     event_bus.subscribe('mission_completed', on_mission_completed)
 
 async def on_mission_completed(user_id: int, mission: Mission, session: AsyncSession, **kwargs):
-    points_service = PointsService(session)
+    # This part might need adjustment depending on how services are instantiated globally
+    user_repo = UserRepository(session)
+    transaction_repo = PointTransactionRepository(session)
+    points_service = PointsService(user_repo, transaction_repo)
     await points_service.award_points_for_mission(user_id, mission)
