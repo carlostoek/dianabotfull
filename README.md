@@ -44,3 +44,23 @@ graph TD
 4. **Documentación**: Mantén un `ARCHITECTURE.md` actualizado
 
 ¡Empecemos con el primer módulo! ¿Quieres que genere el código completo para el **Núcleo Central** usando el prompt proporcionado?
+
+## 🧪 Ejecutar Pruebas
+
+Para ejecutar las pruebas de integración de la Fase 3 (Sistema Narrativo):
+
+```bash
+pytest tests/integration/ -v
+```
+
+Para ejecutar todas las pruebas del proyecto:
+
+```bash
+pytest tests/ -v
+```
+
+Para ejecutar pruebas específicas del sistema de historia:
+
+```bash
+pytest tests/integration/test_story_flow.py -v
+```
