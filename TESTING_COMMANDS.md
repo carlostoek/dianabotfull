@@ -33,3 +33,10 @@ Para iniciar el bot de Telegram y probarlo manualmente (asegúrate de tener las 
 ```bash
 python main.py
 ```
+
+## 5. Comandos de Telegram Implementados
+
+Los siguientes comandos y acciones están actualmente implementados en el bot:
+
+*   `/start`: Inicia la conversación con el bot, crea o recupera el perfil del usuario y verifica la misión de inicio de sesión diario.
+*   `Pausar (botón en línea)`: Este botón, que aparece durante la narrativa, permite pausar la historia. (Implementado como un `callback_data` `pause_story`).
