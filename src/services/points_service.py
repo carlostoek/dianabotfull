@@ -21,6 +21,13 @@ class PointsService:
             )
             await self.session.commit()
 
+    async def get_points(self, user_id: int) -> int:
+        """
+        Get the current point balance for a user.
+        """
+        user = await self.user_repo.get_user_by_id(user_id)
+        return user.points if user else 0
+
 def setup_points_listeners():
     event_bus.subscribe('mission_completed', on_mission_completed)
 
