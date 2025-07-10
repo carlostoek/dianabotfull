@@ -1,0 +1,107 @@
+{
+  "level_1_intro": {
+    "text": "🌙 *El Umbral*\n\nTe encuentras ante una puerta entreabierta. Del otro lado, una voz susurra:\n\n_\"¿Sabes qué es lo que realmente buscas cuando miras a través del espejo?\"_\n\nDiana te observa desde las sombras, esperando...",
+    "visual": "threshold_door",
+    "choices": [
+      {
+        "id": "react_quick",
+        "text": "Responder rápidamente",
+        "next_scene": "level_1_quick_path",
+        "impact": {
+          "diana_state": "provocadora",
+          "resonance_change": 2,
+          "interaction_type": "deseo"
+        }
+      },
+      {
+        "id": "react_thoughtful",
+        "text": "Reflexionar antes de responder",
+        "next_scene": "level_1_thoughtful_path",
+        "impact": {
+          "diana_state": "analítica",
+          "resonance_change": 3,
+          "interaction_type": "lógica"
+        }
+      }
+    ],
+    "meta": {
+      "level": 1,
+      "is_checkpoint": true
+    }
+  },
+  "level_1_quick_path": {
+    "text": "Diana sonríe, una curva apenas perceptible.\n\n_\"Impulsivo... Me gusta. Pero la impulsividad sin dirección es solo ruido.\"_\n\nSu figura se acerca, y sientes que el aire se vuelve más denso.\n\n_\"¿Qué harías si te dijera que puedo mostrarte exactamente lo que deseas... pero primero debes admitir qué es?\"_",
+    "choices": [
+      {
+        "id": "admit_desire",
+        "text": "Admitir mi deseo",
+        "next_scene": "level_1_revelation",
+        "impact": {
+          "diana_state": "perséfone",
+          "resonance_change": 5,
+          "archetype_unlock": ["perséfone"]
+        }
+      },
+      {
+        "id": "deflect",
+        "text": "Desviar la pregunta",
+        "next_scene": "level_1_enigma",
+        "impact": {
+          "diana_state": "enigmática",
+          "resonance_change": -1
+        }
+      }
+    ]
+  },
+  "level_1_thoughtful_path": {
+    "text": "El silencio se extiende. Diana inclina la cabeza, estudiándote.\n\n_\"Interesante... Mides cada palabra como si fueran monedas de oro.\"_\n\nLucien aparece desde las sombras: _\"La reflexión es el primer paso hacia la comprensión... o hacia la parálisis.\"_\n\n¿Qué eliges?",
+    "choices": [
+      {
+        "id": "embrace_analysis",
+        "text": "Analizar la situación",
+        "next_scene": "level_1_wisdom",
+        "impact": {
+          "diana_state": "atenea",
+          "resonance_change": 4,
+          "archetype_unlock": ["atenea"]
+        }
+      },
+      {
+        "id": "trust_intuition",
+        "text": "Confiar en mi intuición",
+        "next_scene": "level_1_mystery",
+        "impact": {
+          "diana_state": "hécate",
+          "resonance_change": 3,
+          "archetype_unlock": ["hécate"]
+        }
+      }
+    ]
+  },
+  "level_1_revelation": {
+    "text": "🔥 *Primera Pista Desbloqueada*\n\nDiana se acerca tanto que puedes sentir su aliento.\n\n_\"El deseo confesado es el primer acto de valentía... o de rendición.\"_\n\nRecibes tu primera pista: *'Los espejos no mienten, pero tampoco dicen toda la verdad.'*",
+    "choices": [],
+    "meta": {
+      "is_checkpoint": true,
+      "reward": "first_clue"
+    }
+  },
+  "level_1_enigma": {
+    "text": "Diana retrocede, su forma volviéndose más difusa.\n\n_\"Predecible. El miedo a la vulnerabilidad es... decepcionante.\"_\n\nTu resonancia con Diana disminuye. Tendrás que trabajar más para recuperar su interés.",
+    "choices": []
+  },
+  "level_1_wisdom": {
+    "text": "🦉 *Sabiduría Reconocida*\n\n_\"Atenea estaría orgullosa. El análisis es una forma de deseo... el deseo de comprender.\"_\n\nRecibes una pista diferente: *'La lógica es solo otra forma de magia cuando se aplica al corazón humano.'*",
+    "choices": [],
+    "meta": {
+      "reward": "wisdom_clue"
+    }
+  },
+  "level_1_mystery": {
+    "text": "🌙 *El Velo Se Levanta*\n\nDiana y Lucien intercambian una mirada cómplice.\n\n_\"La intuición... el lenguaje olvidado del alma. Hécate sonríe desde las sombras.\"_\n\nTu pista: *'Lo que no se puede explicar, a menudo es lo más real.'*",
+    "choices": [],
+    "meta": {
+      "reward": "mystery_clue"
+    }
+  }
+}

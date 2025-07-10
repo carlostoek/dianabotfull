@@ -1,37 +1,45 @@
-import logging
-from src.core.integration_hub import IntegrationHub
-
-logger = logging.getLogger(__name__)
+import json
+from typing import Dict, Optional, List
+from pathlib import Path
 
 class StoryService:
-    """
-    Servicio simplificado para gestionar interacciones con el sistema de historias.
-    """
-    def __init__(self, hub: IntegrationHub):
-        self.hub = hub
-        # Simulación de fragmentos de historia desbloqueados por usuario
-        self._unlocked_fragments = {}
-
-    def grant_story_fragment(self, data: dict):
-        """
-        Handler para 'ACHIEVEMENT_UNLOCKED'. Otorga un fragmento de historia como recompensa.
-        """
-        user_id = data.get("user_id")
-        achievement_name = data.get("achievement_name")
+    def __init__(self, story_file_path: str = "src/data/story.json"):
+        self.story_data = self._load_story_json(story_file_path)
+        self.current_sessions = {}  # user_id -> current_scene_id
+    
+    def _load_story_json(self, file_path: str) -> Dict:
+        """Carga el archivo story.json"""
+        with open(file_path, 'r', encoding='utf-8') as f:
+            return json.load(f)
+    
+    async def get_scene(self, scene_id: str) -> Optional[Dict]:
+        """Obtiene una escena específica"""
+        return self.story_data.get(scene_id)
+    
+    async def start_story(self, user_id: int, level: int = 1) -> Dict:
+        """Inicia la historia para un usuario"""
+        start_scene_id = f"level_{level}_intro"
+        self.current_sessions[user_id] = start_scene_id
+        return await self.get_scene(start_scene_id)
+    
+    async def process_choice(self, user_id: int, choice_id: str) -> Dict:
+        """Procesa la elección del usuario y retorna la siguiente escena"""
+        current_scene_id = self.current_sessions.get(user_id)
+        if not current_scene_id:
+            raise ValueError("No hay sesión activa para este usuario")
         
-        logger.info(f"[HUB] StoryService: Otorgando fragmento de historia a user '{user_id}' por el logro '{achievement_name}'.")
+        current_scene = await self.get_scene(current_scene_id)
         
-        # Lógica de ejemplo para asignar un fragmento
-        fragment_id = f"fragment_for_{achievement_name}"
+        # Buscar la elección seleccionada
+        for choice in current_scene.get('choices', []):
+            if choice['id'] == choice_id:
+                next_scene_id = choice['next_scene']
+                self.current_sessions[user_id] = next_scene_id
+                
+                return {
+                    'next_scene': await self.get_scene(next_scene_id),
+                    'impact': choice.get('impact', {}),
+                    'choice_made': choice
+                }
         
-        if user_id not in self._unlocked_fragments:
-            self._unlocked_fragments[user_id] = []
-        
-        if fragment_id not in self._unlocked_fragments[user_id]:
-            self._unlocked_fragments[user_id].append(fragment_id)
-            logger.info(f"[HUB] StoryService: Fragmento '{fragment_id}' añadido a user '{user_id}'.")
-            
-            # Este es el final del primer flujo, por lo que no se enruta ningún evento nuevo.
-        else:
-            logger.info(f"[HUB] StoryService: User '{user_id}' ya posee el fragmento '{fragment_id}'.")
-
+        raise ValueError(f"Elección {choice_id} no válida para la escena {current_scene_id}")
