@@ -93,6 +93,30 @@ def get_vip_menu(is_vip: bool) -> InlineKeyboardMarkup:
         )
     return builder.as_markup()
 
+def get_missions_menu() -> InlineKeyboardMarkup:
+    """Builds the Mission Center inline keyboard.
+
+    This keyboard provides navigation for different types of missions
+    and achievements, structured in a 2x2 grid plus a navigation row.
+
+    Returns:
+        An InlineKeyboardMarkup object for the Mission Center.
+    """
+    builder = InlineKeyboardBuilder()
+    builder.row(
+        InlineKeyboardButton(text="📅 Diarias", callback_data="missions_daily"),
+        InlineKeyboardButton(text="🗓️ Semanales", callback_data="missions_weekly")
+    )
+    builder.row(
+        InlineKeyboardButton(text="⭐ Especiales", callback_data="missions_special"),
+        InlineKeyboardButton(text="🏆 Logros", callback_data="missions_achievements")
+    )
+    builder.row(
+        InlineKeyboardButton(text="↩️ Volver", callback_data="back"),
+        InlineKeyboardButton(text="📊 Progreso", callback_data="missions_progress")
+    )
+    return builder.as_markup()
+
 def format_section_message(title: str, content: str, emoji: str = "🎯") -> str:
     """
     Formats a section message with a consistent style.

@@ -1,0 +1,42 @@
+[
+  {
+    "id": "m001",
+    "title": "El Primer Paso",
+    "description": "Completa el tutorial inicial para familiarizarte con los controles.",
+    "reward": 100,
+    "time_limit": 3600,
+    "category": "tutorial"
+  },
+  {
+    "id": "m002",
+    "title": "Explorador Novato",
+    "description": "Visita 3 zonas diferentes en el mapa del mundo.",
+    "reward": 250,
+    "time_limit": 86400,
+    "category": "exploración"
+  },
+  {
+    "id": "m003",
+    "title": "Amigo Bot",
+    "description": "Saluda a Diana por primera vez.",
+    "reward": 50,
+    "time_limit": 600,
+    "category": "interacción"
+  },
+  {
+    "id": "m004",
+    "title": "El Poder de la Amistad",
+    "description": "Invita a un amigo a unirse a la aventura.",
+    "reward": 500,
+    "time_limit": 604800,
+    "category": "social"
+  },
+  {
+    "id": "m005",
+    "title": "Conoce tu Historia",
+    "description": "Pregúntale a Diana sobre su pasado.",
+    "reward": 150,
+    "time_limit": 3600,
+    "category": "interacción"
+  }
+]
