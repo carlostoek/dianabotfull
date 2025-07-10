@@ -48,3 +48,27 @@ def get_main_menu() -> InlineKeyboardMarkup:
         builder.row(*row)
         
     return builder.as_markup()
+
+def get_nav_menu() -> InlineKeyboardMarkup:
+    """Creates an inline keyboard with secondary navigation buttons.
+
+    This keyboard provides common actions like refreshing, closing, going back,
+    or returning to the home menu, suitable for use in various sub-menus.
+
+    The layout is structured as follows:
+    - Row 1: Actualizar, Cerrar
+    - Row 2: Volver, Inicio
+
+    Returns:
+        An InlineKeyboardMarkup object with the navigation buttons.
+    """
+    builder = InlineKeyboardBuilder()
+    builder.row(
+        InlineKeyboardButton(text=" Actualizar", callback_data="refresh"),
+        InlineKeyboardButton(text="❌ Cerrar", callback_data="close")
+    )
+    builder.row(
+        InlineKeyboardButton(text="↩️ Volver", callback_data="back"),
+        InlineKeyboardButton(text=" Inicio", callback_data="home")
+    )
+    return builder.as_markup()
