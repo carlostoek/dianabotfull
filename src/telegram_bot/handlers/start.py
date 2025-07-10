@@ -10,7 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.services.user_service import UserService
 from src.utils.user_roles import assign_role
-from src.utils.menu_factory import get_main_menu
+from src.utils.menu_factory import get_main_menu, format_section_message
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -24,7 +24,7 @@ async def command_start_handler(message: Message, session: AsyncSession) -> None
     Handles the /start command.
 
     This function ensures a user is registered, assigns them a default role
-    if they don't have one, and displays the main menu.
+    if they don't have one, and displays the main menu with a styled message.
 
     Args:
         message: The incoming message object from Aiogram.
@@ -39,24 +39,23 @@ async def command_start_handler(message: Message, session: AsyncSession) -> None
         await user_service.create_user_if_not_exists(user_id, username)
 
         # 3. Assign a role if the user doesn't have one.
-        # Note: This uses the in-memory implementation.
         assign_role(user_id)
 
-        # 4. Send the welcome message with the main menu.
-        welcome_text = (
-            f"¡Hola, {username}! ✨\n\n"
-            "Soy Diana, tu guía en este viaje. "
-            "Usa el menú de abajo para explorar las opciones disponibles."
-        )
+        # 4. Send the welcome message with the main menu, using the new style.
+        title = f"BIENVENIDO, {username.upper()}"
+        content = "Soy Diana, tu guía en este viaje. Usa el menú de abajo para explorar las opciones disponibles."
+        
+        welcome_text = format_section_message(title, content, emoji="✨")
         
         await message.answer(
-            welcome_text,
-            reply_markup=get_main_menu()
+            text=welcome_text,
+            reply_markup=get_main_menu(),
+            parse_mode="Markdown"
         )
         logger.info(f"User {username} (ID: {user_id}) started the bot.")
 
     except Exception as e:
         logger.error(f"Error in command_start_handler for user {message.from_user.id}: {e}", exc_info=True)
         await message.answer(
-            "😕 Hubo un problema al iniciar. Por favor, intenta de nuevo más tarde."
+            "😕 Hubo un problema al iniciar. Por favor, intenta de nuevo m��s tarde."
         )
