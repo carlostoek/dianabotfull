@@ -7,3 +7,4 @@ aiogram[all]
 sqlalchemy
 alembic
 aiosqlite
+pytest-mock

@@ -82,8 +82,9 @@ class MissionService:
                 await self.user_mission_repo.start_mission(user_id, mission_id)
                 return
 
-        await self.user_mission_repo.start_mission(user_id, mission_id)
+        started_mission = await self.user_mission_repo.start_mission(user_id, mission_id)
         logging.info(f"Mission {mission_id} successfully started for user {user_id}.")
+        return started_mission
 
     async def update_mission_progress(self, user_id: int, mission_id: str, progress_delta: float) -> None:
         """Updates the progress of a mission for a user.
@@ -107,12 +108,13 @@ class MissionService:
 
         new_progress = min(100.0, current_progress_record.progress + progress_delta)
         
-        await self.user_mission_repo.update_progress(user_id, mission_id, new_progress)
+        updated_record = await self.user_mission_repo.update_progress(user_id, mission_id, new_progress)
 
         if new_progress >= 100.0:
             await self.user_mission_repo.complete_mission(user_id, mission_id)
             logging.info(f"Mission {mission_id} for user {user_id} automatically completed.")
         logging.info(f"Progress for user {user_id}, mission {mission_id} updated to {new_progress}.")
+        return updated_record
 
     async def get_mission_status(self, user_id: int, mission_id: str) -> str:
         """Retrieves the current status of a mission for a user.
