@@ -77,14 +77,10 @@ async def test_duplicate_accept(mission_service, mock_user, mock_repo):
     first_acceptance = await mission_service.start_mission(mock_user.id, mission_id)
     assert first_acceptance.status == "in_progress"
 
-    # Attempt to accept again
-    second_acceptance = await mission_service.start_mission(mock_user.id, mission_id)
-
-    # Should return the same in-progress mission, not create a new one or raise an error
-    assert second_acceptance.user_id == mock_user.id
-    assert second_acceptance.mission_id == mission_id
-    assert second_acceptance.status == "in_progress"
-    assert second_acceptance == first_acceptance # Should be the same object/record
+    # Attempt to accept again - should raise ValueError
+    with pytest.raises(ValueError) as exc_info:
+        await mission_service.start_mission(mock_user.id, mission_id)
+    assert "already in progress" in str(exc_info.value)
 
     # Verify only one record exists in the repository
     user_missions = await mock_repo.get_user_missions(mock_user.id)

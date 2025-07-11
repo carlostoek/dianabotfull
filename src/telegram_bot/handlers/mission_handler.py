@@ -1,74 +1,211 @@
-from telegram import Update, ParseMode
-from telegram.ext import CallbackContext
+from aiogram import Router, F
+from aiogram.types import Message, CallbackQuery, InlineKeyboardMarkup, InlineKeyboardButton
+from aiogram.filters import Command
 
-from ...services.mission_service import MissionService
-from ..menus.mission_menu import create_mission_layout
+from src.services.mission_service import MissionService
+from src.core.models import MissionType, MissionStatus # Assuming these enums are here
+from src.telegram_bot.messages import (
+    get_missions_center_message,
+    format_mission_message,
+    get_mission_accepted_message,
+    get_no_missions_message,
+)
+from src.utils.text_utils import create_progress_bar # Assuming this utility is here
 
-# In a real application, this service instance would be managed by a
-# dependency injection container or a central app context.
-mission_service = MissionService()
+router = Router()
 
-# This is a placeholder for updating the user's currency ("besitos").
-# In a real implementation, this would call a dedicated ProfileService or UserRepository.
-def _add_besitos_to_user(user_id: int, amount: int):
-    """Simulates adding currency to a user's profile."""
-    print(f"INFO: Adding {amount} besitos to user {user_id}. (Simulated)")
-    # Example of what a real implementation would look like:
-    # profile_service = ProfileService()
-    # profile_service.add_besitos(user_id, amount)
+class MissionHandler:
+    def __init__(self, mission_service: MissionService):
+        self.mission_service = mission_service
 
+    async def register_handlers(self):
+        router.message.register(self.missions_command_handler, Command("misiones"))
+        router.callback_query.register(self.show_missions_list, F.data == "missions_list")
+        router.callback_query.register(self.show_mission_details, F.data.startswith("mission_details_"))
+        router.callback_query.register(self.accept_mission, F.data.startswith("mission_accept_"))
+        router.callback_query.register(self.show_active_missions, F.data == "missions_active")
+        # Assuming 'main_menu' callback is handled elsewhere or leads to a main menu handler
+        # For now, just ensure it's a valid callback_data
 
-def mission_command_handler(update: Update, context: CallbackContext) -> None:
-    """
-    Handles the /mision command, showing the user their daily mission.
-    """
-    user_id = update.effective_user.id
-    mission = mission_service.get_daily_mission(user_id)
+    async def missions_command_handler(self, message: Message):
+        user_id = message.from_user.id
+        username = message.from_user.first_name # Or full_name
 
-    if not mission:
-        update.message.reply_text("Parece que no hay misiones disponibles hoy. ¡Vuelve mañana!")
-        return
-
-    text, keyboard = create_mission_layout(mission)
-    update.message.reply_text(text, reply_markup=keyboard, parse_mode=ParseMode.MARKDOWN)
-
-
-def claim_mission_callback_handler(update: Update, context: CallbackContext) -> None:
-    """
-    Handles the callback query for claiming a mission reward.
-    """
-    query = update.callback_query
-    query.answer()  # Acknowledge the callback to remove the "loading" state on the client
-
-    user_id = query.from_user.id
-    callback_data = query.data
-    
-    # Expected callback_data format: "claim_mission_{mission_id}"
-    try:
-        mission_id = callback_data.split('_')[2]
-    except IndexError:
-        query.edit_message_text("Error: Callback inválido o malformado.")
-        return
-
-    reward = mission_service.complete_mission(user_id, mission_id)
-
-    if reward is not None:
-        # Add reward to the user's profile
-        _add_besitos_to_user(user_id, reward)
-        
-        # Get the updated mission state to show the "Completed" view
-        updated_mission = mission_service.get_daily_mission(user_id)
-        text, keyboard = create_mission_layout(updated_mission)
-        
-        # Notify the user of their success and show the updated mission status
-        query.edit_message_text(
-            f"¡Felicidades! Has completado la misión y ganado **{reward} besitos**.\n\n{text}",
-            reply_markup=keyboard,
-            parse_mode=ParseMode.MARKDOWN
+        await message.answer(
+            get_missions_center_message(username),
+            reply_markup=self._get_missions_center_keyboard()
         )
-    else:
-        # This can happen if the mission was already claimed or if the state is inconsistent.
-        query.edit_message_text(
-            "Esta misión no se puede reclamar. Es posible que ya la hayas completado o que haya caducado.",
-            reply_markup=query.message.reply_markup  # Keep the original keyboard
+
+    async def show_missions_list(self, callback_query: CallbackQuery):
+        user_id = callback_query.from_user.id
+        available_missions = self.mission_service.get_available_missions(user_id)
+
+        if not available_missions:
+            await callback_query.message.edit_text(
+                get_no_missions_message("disponibles"),
+                reply_markup=self._get_navigation_keyboard("missions_list")
+            )
+            await callback_query.answer()
+            return
+
+        # Display one mission at a time, or a list of buttons to view each
+        # For simplicity, let's list them as buttons first
+        keyboard = InlineKeyboardMarkup(inline_keyboard=[])
+        for mission_id, mission_data in available_missions.items():
+            keyboard.inline_keyboard.append([
+                InlineKeyboardButton(
+                    text=f"🌟 {mission_data['title']}",
+                    callback_data=f"mission_details_{mission_id}"
+                )
+            ])
+        
+        keyboard.inline_keyboard.append(self._get_navigation_keyboard_row("missions_list"))
+
+        await callback_query.message.edit_text(
+            "Aquí están las misiones que te esperan. Elige sabiamente, o no.",
+            reply_markup=keyboard
         )
+        await callback_query.answer()
+
+    async def show_mission_details(self, callback_query: CallbackQuery):
+        user_id = callback_query.from_user.id
+        mission_id = callback_query.data.split("_")[2]
+
+        mission_data = self.mission_service.get_mission_data(mission_id) # Assuming a method to get full mission data
+        if not mission_data:
+            await callback_query.message.edit_text(
+                "Esa misión... no la encuentro. ¿Quizás nunca existió?",
+                reply_markup=self._get_navigation_keyboard("missions_list")
+            )
+            await callback_query.answer()
+            return
+
+        # Check if mission is available for the user (e.g., not accepted yet, prerequisites met)
+        # This logic should ideally be in MissionService.get_mission_data_for_user
+        # For now, we'll assume mission_data includes status for the current user
+        # Or we fetch it separately
+        user_mission_status = self.mission_service.get_user_mission_status(user_id, mission_id)
+        mission_data['status'] = user_mission_status # Update status for formatting
+
+        # Add progress if accepted
+        if user_mission_status == MissionStatus.ACCEPTED:
+            progress_info = self.mission_service.get_mission_progress(user_id, mission_id)
+            if progress_info:
+                mission_data['progress'] = progress_info['current']
+                mission_data['max_progress'] = progress_info['target']
+
+        message_text = format_mission_message(mission_data)
+        keyboard = self._get_mission_details_keyboard(mission_id, user_mission_status)
+
+        await callback_query.message.edit_text(
+            message_text,
+            reply_markup=keyboard
+        )
+        await callback_query.answer()
+
+    async def accept_mission(self, callback_query: CallbackQuery):
+        user_id = callback_query.from_user.id
+        mission_id = callback_query.data.split("_")[2]
+        username = callback_query.from_user.first_name
+
+        success, message = self.mission_service.accept_mission(user_id, mission_id)
+
+        if success:
+            mission_data = self.mission_service.get_mission_data(mission_id)
+            await callback_query.message.edit_text(
+                get_mission_accepted_message(username, mission_data['title']),
+                reply_markup=self._get_navigation_keyboard("missions_list") # Go back to list or active missions
+            )
+        else:
+            await callback_query.message.edit_text(
+                f"No. No puedes aceptar esa misión. {message}", # Use the message from service
+                reply_markup=self._get_navigation_keyboard("missions_list")
+            )
+        await callback_query.answer()
+
+    async def show_active_missions(self, callback_query: CallbackQuery):
+        user_id = callback_query.from_user.id
+        active_missions = self.mission_service.get_user_active_missions(user_id) # Assuming this method exists
+
+        if not active_missions:
+            await callback_query.message.edit_text(
+                get_no_missions_message("activas"),
+                reply_markup=self._get_navigation_keyboard("missions_list")
+            )
+            await callback_query.answer()
+            return
+
+        keyboard = InlineKeyboardMarkup(inline_keyboard=[])
+        for mission_id, mission_data in active_missions.items():
+            # Fetch progress for active missions
+            progress_info = self.mission_service.get_mission_progress(user_id, mission_id)
+            progress_text = ""
+            if progress_info:
+                progress_text = f" ({progress_info['current']}/{progress_info['target']})"
+            
+            keyboard.inline_keyboard.append([
+                InlineKeyboardButton(
+                    text=f"⏳ {mission_data['title']}{progress_text}",
+                    callback_data=f"mission_details_{mission_id}"
+                )
+            ])
+        
+        keyboard.inline_keyboard.append(self._get_navigation_keyboard_row("missions_list"))
+
+        await callback_query.message.edit_text(
+            "Tus desafíos actuales. No los descuides.",
+            reply_markup=keyboard
+        )
+        await callback_query.answer()
+
+
+    def _get_missions_center_keyboard(self) -> InlineKeyboardMarkup:
+        return InlineKeyboardMarkup(inline_keyboard=[
+            [InlineKeyboardButton(text="🌟 Ver Misiones Disponibles", callback_data="missions_list")],
+            [InlineKeyboardButton(text="🏆 Mis Misiones Activas", callback_data="missions_active")],
+            self._get_navigation_keyboard_row("main_menu")
+        ])
+
+    def _get_mission_details_keyboard(self, mission_id: str, status: MissionStatus) -> InlineKeyboardMarkup:
+        buttons = []
+        if status == MissionStatus.AVAILABLE:
+            buttons.append(InlineKeyboardButton(text="✅ Aceptar Misión", callback_data=f"mission_accept_{mission_id}"))
+        elif status == MissionStatus.ACCEPTED:
+            buttons.append(InlineKeyboardButton(text="⏳ Ver Progreso", callback_data=f"mission_details_{mission_id}")) # Re-show details with updated progress
+
+        keyboard = InlineKeyboardMarkup(inline_keyboard=[
+            buttons,
+            self._get_navigation_keyboard_row("missions_list")
+        ])
+        return keyboard
+
+    def _get_navigation_keyboard(self, current_context: str) -> InlineKeyboardMarkup:
+        return InlineKeyboardMarkup(inline_keyboard=[
+            self._get_navigation_keyboard_row(current_context)
+        ])
+
+    def _get_navigation_keyboard_row(self, current_context: str) -> list[InlineKeyboardButton]:
+        if current_context == "missions_list":
+            return [
+                InlineKeyboardButton(text="↩️ Volver al Centro", callback_data="missions_center"), # New callback for center
+                InlineKeyboardButton(text="🏠 Inicio", callback_data="main_menu")
+            ]
+        elif current_context == "main_menu":
+            return [
+                InlineKeyboardButton(text="↩️ Volver al Menú Principal", callback_data="main_menu")
+            ]
+        elif current_context == "missions_center":
+            return [
+                InlineKeyboardButton(text="↩️ Volver al Menú Principal", callback_data="main_menu")
+            ]
+        return [
+            InlineKeyboardButton(text="↩️ Volver", callback_data="missions_list"),
+            InlineKeyboardButton(text="🏠 Inicio", callback_data="main_menu")
+        ]
+
+# You would instantiate and register this in your main bot setup:
+# from src.services.mission_service import MissionService
+# mission_service = MissionService(...) # Initialize with dependencies
+# mission_handler = MissionHandler(mission_service)
+# await mission_handler.register_handlers()
+# dp.include_router(router) # dp is your Dispatcher
