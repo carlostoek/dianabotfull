@@ -188,3 +188,18 @@ class UserMissionRepository:
         await self.session.refresh(mission_progress)
         logging.info(f"Mission {mission_id} for user {user_id} marked as failed.")
         return mission_progress
+
+    async def update_user_mission_progress(self, user_mission_progress: UserMissionProgress) -> UserMissionProgress:
+        """Updates an existing UserMissionProgress record.
+
+        Args:
+            user_mission_progress (UserMissionProgress): The UserMissionProgress object to update.
+
+        Returns:
+            UserMissionProgress: The updated UserMissionProgress object.
+        """
+        self.session.add(user_mission_progress)
+        await self.session.commit()
+        await self.session.refresh(user_mission_progress)
+        logging.info(f"UserMissionProgress for user {user_mission_progress.user_id}, mission {user_mission_progress.mission_id} updated.")
+        return user_mission_progress

@@ -45,6 +45,15 @@ class UserRepository:
         result = await self.session.execute(select(User).filter_by(id=user_id))
         return result.scalar_one_or_none()
 
+    async def update_user_points(self, user_id: int, new_points: int) -> User:
+        user = await self.get_user_by_id(user_id)
+        if not user:
+            raise ValueError(f"User with ID {user_id} not found.")
+        user.points = new_points
+        await self.session.commit()
+        await self.session.refresh(user)
+        return user
+
 class MissionRepository:
     def __init__(self, session: AsyncSession):
         self.session = session

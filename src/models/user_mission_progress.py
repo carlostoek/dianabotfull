@@ -3,7 +3,7 @@
 Define el modelo de la base de datos para el progreso de las misiones de usuario.
 """
 import datetime
-from sqlalchemy import Column, Integer, String, Float, DateTime, PrimaryKeyConstraint
+from sqlalchemy import Column, Integer, String, Float, DateTime, PrimaryKeyConstraint, Boolean
 from src.database.database_setup import Base
 
 class UserMissionProgress(Base):
@@ -17,6 +17,7 @@ class UserMissionProgress(Base):
         progress (float): Porcentaje de progreso (0.0 a 100.0).
         started_at (datetime): Fecha y hora de inicio de la misión.
         completed_at (datetime, optional): Fecha y hora de finalización de la misión.
+    reward_claimed (bool): Indica si la recompensa de la misión ha sido reclamada.
     """
     __tablename__ = "user_mission_progress"
 
@@ -26,6 +27,7 @@ class UserMissionProgress(Base):
     progress = Column(Float, default=0.0, nullable=False)
     started_at = Column(DateTime, default=datetime.datetime.utcnow, nullable=False)
     completed_at = Column(DateTime, nullable=True)
+    reward_claimed = Column(Boolean, default=False, nullable=False)
 
     __table_args__ = (
         PrimaryKeyConstraint('user_id', 'mission_id'),

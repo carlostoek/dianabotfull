@@ -35,6 +35,7 @@ class UserProgress(Base):
     resonance_score = Column(Float, default=0.0, nullable=False)
     significant_interactions = Column(JSON, default=list, nullable=False)
     last_interaction_at = Column(DateTime, default=datetime.utcnow)
+    experience = Column(Integer, default=0, nullable=False)
     
     user = relationship("User", back_populates="progress")
 
