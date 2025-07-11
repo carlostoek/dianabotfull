@@ -1,134 +1,137 @@
-# -*- coding: utf-8 -*-
-"""
-Módulo para gestionar las misiones del bot.
-
-Este módulo define el MissionService, que se encarga de cargar, validar
-y proporcionar acceso a las misiones desde un archivo JSON.
-"""
-
-import json
-import random
-from pathlib import Path
+import logging
 from typing import Dict, List, Optional
 
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from src.database.user_mission_repository import UserMissionRepository
+from src.data.mission_catalog import MissionCatalog
+from src.models.user_mission_progress import UserMissionProgress
+
+# Configure logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+
 class MissionService:
+    """Service layer for managing user missions and their progress.
+
+    This service acts as an intermediary between the bot/application logic
+    and the data repositories (MissionCatalog and UserMissionRepository).
+    It handles business logic related to mission availability, starting,
+    updating progress, and status retrieval.
     """
-    Servicio para gestionar las misiones del juego.
 
-    Carga las misiones desde un archivo JSON, las valida y ofrece métodos
-    para acceder a ellas.
-
-    Attributes:
-        missions_path (Path): Ruta al archivo JSON de misiones.
-    """
-    _REQUIRED_KEYS = {"id", "title", "description", "reward", "time_limit", "category"}
-
-    def __init__(self, missions_file_path: str = "data/missions.json"):
-        """
-        Inicializa el servicio de misiones.
+    def __init__(self, session: AsyncSession, mission_catalog: MissionCatalog):
+        """Initializes the MissionService.
 
         Args:
-            missions_file_path (str): Ruta relativa al archivo de misiones JSON.
+            session (AsyncSession): The SQLAlchemy asynchronous session for database operations.
+            mission_catalog (MissionCatalog): The catalog providing mission definitions.
         """
-        self.missions_path = Path(missions_file_path)
-        self._missions: List[Dict] = self._load_missions()
+        self.user_mission_repo = UserMissionRepository(session)
+        self.mission_catalog = mission_catalog
 
-    def _load_missions(self) -> List[Dict]:
-        """
-        Carga y valida las misiones desde el archivo JSON.
+    async def list_available_missions(self, user_id: int) -> List[Dict]:
+        """Lists missions available to a user that are not yet completed.
 
-        Maneja errores de archivo no encontrado o formato JSON inválido.
+        Args:
+            user_id (int): The ID of the user.
 
         Returns:
-            List[Dict]: Una lista de misiones validadas o una lista vacía si
-                        ocurre un error.
+            List[Dict]: A list of mission dictionaries, each including 'status'.
         """
-        if not self.missions_path.exists():
-            print(f"Error: El archivo de misiones no se encontró en '{self.missions_path}'")
-            return []
-
-        try:
-            with self.missions_path.open('r', encoding='utf-8') as f:
-                data = json.load(f)
-            
-            if not isinstance(data, list):
-                raise TypeError("El JSON de misiones debe ser una lista de objetos.")
-
-            self._validate_missions(data)
-            return data
-        except FileNotFoundError:
-            print(f"Error: El archivo de misiones no se encontró en '{self.missions_path}'")
-        except json.JSONDecodeError:
-            print(f"Error: El archivo '{self.missions_path}' no contiene un JSON válido.")
-        except (KeyError, TypeError) as e:
-            print(f"Error en la validación de misiones: {e}")
+        logging.info(f"Listing available missions for user {user_id}")
+        all_missions = self.mission_catalog.get_all_missions()
+        user_progress_records = await self.user_mission_repo.get_user_missions(user_id)
         
-        return []
+        completed_mission_ids = {m.mission_id for m in user_progress_records if m.status == "completed"}
 
-    def _validate_missions(self, missions_data: List[Dict]):
-        """
-        Valida que cada misión en la lista contenga las claves requeridas.
+        available_missions = []
+        for mission in all_missions:
+            if mission["id"] not in completed_mission_ids:
+                mission_status = await self.get_mission_status(user_id, mission["id"])
+                mission_with_status = mission.copy()
+                mission_with_status["status"] = mission_status
+                available_missions.append(mission_with_status)
+        
+        logging.info(f"Found {len(available_missions)} available missions for user {user_id}")
+        return available_missions
+
+    async def start_mission(self, user_id: int, mission_id: str) -> None:
+        """Starts a mission for a user.
 
         Args:
-            missions_data (List[Dict]): La lista de misiones a validar.
+            user_id (int): The ID of the user.
+            mission_id (str): The ID of the mission to start.
 
         Raises:
-            KeyError: Si a una misión le falta una clave requerida.
+            ValueError: If the mission_id is invalid or the mission is already in progress/completed.
         """
-        for i, mission in enumerate(missions_data):
-            if not self._REQUIRED_KEYS.issubset(mission.keys()):
-                missing_keys = self._REQUIRED_KEYS - mission.keys()
-                raise KeyError(
-                    f"La misión en el índice {i} no tiene las claves requeridas: {missing_keys}"
-                )
+        logging.info(f"Attempting to start mission {mission_id} for user {user_id}")
+        mission_definition = self.mission_catalog.get_mission_by_id(mission_id)
+        if not mission_definition:
+            raise ValueError(f"Mission with ID {mission_id} does not exist in the catalog.")
 
-    def get_all_missions(self) -> List[Dict]:
-        """
-        Retorna todas las misiones cargadas.
+        current_progress = await self.user_mission_repo.get_mission_progress(user_id, mission_id)
+        if current_progress:
+            if current_progress.status == "in_progress":
+                raise ValueError(f"Mission {mission_id} is already in progress for user {user_id}.")
+            elif current_progress.status == "completed":
+                raise ValueError(f"Mission {mission_id} is already completed for user {user_id}.")
+            elif current_progress.status == "failed":
+                # Allow restarting a failed mission
+                logging.info(f"Mission {mission_id} for user {user_id} was failed, restarting.")
+                await self.user_mission_repo.start_mission(user_id, mission_id)
+                return
 
-        Returns:
-            List[Dict]: Una lista de todas las misiones.
-        """
-        return self._missions
+        await self.user_mission_repo.start_mission(user_id, mission_id)
+        logging.info(f"Mission {mission_id} successfully started for user {user_id}.")
 
-    def get_mission_by_id(self, mission_id: str) -> Optional[Dict]:
-        """
-        Busca y retorna una misión por su ID.
+    async def update_mission_progress(self, user_id: int, mission_id: str, progress_delta: float) -> None:
+        """Updates the progress of a mission for a user.
 
         Args:
-            mission_id (str): El ID de la misión a buscar.
+            user_id (int): The ID of the user.
+            mission_id (str): The ID of the mission.
+            progress_delta (float): The amount to add to the current progress.
 
-        Returns:
-            Optional[Dict]: El diccionario de la misión si se encuentra, de lo contrario None.
+        Raises:
+            ValueError: If the mission_id is invalid or the mission is not in progress.
         """
-        for mission in self._missions:
-            if mission.get("id") == mission_id:
-                return mission
-        return None
+        logging.info(f"Updating progress for user {user_id}, mission {mission_id} by {progress_delta}")
+        mission_definition = self.mission_catalog.get_mission_by_id(mission_id)
+        if not mission_definition:
+            raise ValueError(f"Mission with ID {mission_id} does not exist in the catalog.")
 
-    def get_random_mission(self, category: Optional[str] = None) -> Optional[Dict]:
-        """
-        Retorna una misión aleatoria, opcionalmente filtrada por categoría.
+        current_progress_record = await self.user_mission_repo.get_mission_progress(user_id, mission_id)
+        if not current_progress_record or current_progress_record.status != "in_progress":
+            raise ValueError(f"Mission {mission_id} is not in progress for user {user_id}. Cannot update.")
 
-        Args:
-            category (Optional[str]): La categoría por la cual filtrar. Si es None,
-                                      se elige de entre todas las misiones.
-
-        Returns:
-            Optional[Dict]: Un diccionario de misión aleatoria o None si no hay
-                            misiones disponibles para los criterios dados.
-        """
-        if not self._missions:
-            return None
-
-        if category:
-            filtered_missions = [
-                m for m in self._missions if m.get("category") == category
-            ]
-            if not filtered_missions:
-                return None
-            return random.choice(filtered_missions)
+        new_progress = min(100.0, current_progress_record.progress + progress_delta)
         
-        return random.choice(self._missions)
+        await self.user_mission_repo.update_progress(user_id, mission_id, new_progress)
 
+        if new_progress >= 100.0:
+            await self.user_mission_repo.complete_mission(user_id, mission_id)
+            logging.info(f"Mission {mission_id} for user {user_id} automatically completed.")
+        logging.info(f"Progress for user {user_id}, mission {mission_id} updated to {new_progress}.")
 
+    async def get_mission_status(self, user_id: int, mission_id: str) -> str:
+        """Retrieves the current status of a mission for a user.
+
+        Args:
+            user_id (int): The ID of the user.
+            mission_id (str): The ID of the mission.
+
+        Returns:
+            str: The status of the mission (pending, in_progress, completed, failed).
+        """
+        logging.info(f"Getting status for user {user_id}, mission {mission_id}")
+        mission_definition = self.mission_catalog.get_mission_by_id(mission_id)
+        if not mission_definition:
+            # If mission doesn't exist in catalog, it's not a valid mission to track
+            return "invalid"
+
+        progress_record = await self.user_mission_repo.get_mission_progress(user_id, mission_id)
+        if progress_record:
+            return progress_record.status
+        else:
+            return "pending" # Mission exists in catalog but no progress record for user

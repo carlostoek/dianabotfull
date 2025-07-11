@@ -1,178 +1,190 @@
-# -*- coding: utf-8 -*-
-"""
-Repositorio para gestionar el estado de las misiones de los usuarios en la BD.
-"""
 import logging
-import datetime
+from datetime import datetime
 from typing import List, Optional
 
-from sqlalchemy.orm import Session
-from src.database.database_setup import SessionLocal
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
+
 from src.models.user_mission_progress import UserMissionProgress
 
-# Configuración básica de logging
+# Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 class UserMissionRepository:
+    """Repository for managing user mission progress in the database.
+
+    This class provides methods to interact with the UserMissionProgress model,
+    handling creation, retrieval, and updates of user mission data.
     """
-    Clase de repositorio para manejar las operaciones CRUD de UserMissionProgress.
-    
-    Utiliza métodos estáticos para interactuar con la base de datos a través de
-    sesiones de SQLAlchemy.
-    """
 
-    @staticmethod
-    def _get_progress_entry(session: Session, user_id: int, mission_id: str) -> Optional[UserMissionProgress]:
-        """
-        Método auxiliar para obtener una entrada de progreso de misión específica.
+    def __init__(self, session: AsyncSession):
+        """Initializes the UserMissionRepository with an SQLAlchemy async session.
 
         Args:
-            session (Session): La sesión de base de datos activa.
-            user_id (int): El ID del usuario.
-            mission_id (str): El ID de la misión.
+            session (AsyncSession): The SQLAlchemy asynchronous session object.
+        """
+        self.session = session
+
+    async def get_user_missions(self, user_id: int) -> List[UserMissionProgress]:
+        """Retrieves all mission progress records for a given user.
+
+        Args:
+            user_id (int): The ID of the user.
 
         Returns:
-            Optional[UserMissionProgress]: El objeto de progreso si se encuentra, de lo contrario None.
+            List[UserMissionProgress]: A list of UserMissionProgress objects for the user.
         """
-        return session.query(UserMissionProgress).filter_by(user_id=user_id, mission_id=mission_id).first()
+        logging.info(f"Fetching all missions for user_id: {user_id}")
+        result = await self.session.execute(
+            select(UserMissionProgress).filter_by(user_id=user_id)
+        )
+        return result.scalars().all()
 
-    @staticmethod
-    def get_user_missions(user_id: int) -> List[UserMissionProgress]:
-        """
-        Obtiene todas las misiones asociadas a un usuario.
+    async def get_mission_progress(self, user_id: int, mission_id: str) -> Optional[UserMissionProgress]:
+        """Retrieves the progress of a specific mission for a given user.
 
         Args:
-            user_id (int): El ID del usuario.
+            user_id (int): The ID of the user.
+            mission_id (str): The ID of the mission.
 
         Returns:
-            List[UserMissionProgress]: Una lista de los registros de progreso de misiones del usuario.
+            Optional[UserMissionProgress]: The UserMissionProgress object if found, otherwise None.
         """
-        with SessionLocal() as session:
-            missions = session.query(UserMissionProgress).filter_by(user_id=user_id).all()
-            logging.info(f"Consultadas {len(missions)} misiones para el usuario {user_id}.")
-            return missions
+        logging.info(f"Fetching progress for user_id: {user_id}, mission_id: {mission_id}")
+        result = await self.session.execute(
+            select(UserMissionProgress).filter_by(user_id=user_id, mission_id=mission_id)
+        )
+        return result.scalars().first()
 
-    @staticmethod
-    def get_mission_progress(user_id: int, mission_id: str) -> Optional[UserMissionProgress]:
-        """
-        Obtiene el progreso de una misión específica para un usuario.
+    async def start_mission(self, user_id: int, mission_id: str) -> UserMissionProgress:
+        """Starts a new mission for a user or resumes an existing one.
+
+        If the mission already exists for the user, its status is set to 'in_progress'.
+        Otherwise, a new UserMissionProgress record is created.
 
         Args:
-            user_id (int): El ID del usuario.
-            mission_id (str): El ID de la misión.
+            user_id (int): The ID of the user.
+            mission_id (str): The ID of the mission to start.
 
         Returns:
-            Optional[UserMissionProgress]: El registro de progreso si existe.
-        """
-        with SessionLocal() as session:
-            progress = UserMissionRepository._get_progress_entry(session, user_id, mission_id)
-            if progress:
-                logging.info(f"Consultado progreso para usuario {user_id}, misión '{mission_id}'.")
-            else:
-                logging.warning(f"No se encontró progreso para usuario {user_id}, misión '{mission_id}'.")
-            return progress
-
-    @staticmethod
-    def start_mission(user_id: int, mission_id: str) -> UserMissionProgress:
-        """
-        Inicia una nueva misión para un usuario, creando un registro de progreso.
-
-        Si la misión ya existe, no hace nada y devuelve la entrada existente.
-
-        Args:
-            user_id (int): El ID del usuario.
-            mission_id (str): El ID de la misión a iniciar.
+            UserMissionProgress: The UserMissionProgress object after starting/resuming.
         
-        Returns:
-            UserMissionProgress: La entrada de progreso nueva o existente.
+        Raises:
+            ValueError: If the mission_id does not correspond to a valid mission.
         """
-        with SessionLocal() as session:
-            existing_progress = UserMissionRepository._get_progress_entry(session, user_id, mission_id)
-            if existing_progress:
-                logging.warning(f"El usuario {user_id} ya ha iniciado la misión '{mission_id}'.")
-                return existing_progress
-
-            new_progress = UserMissionProgress(
+        logging.info(f"Attempting to start mission {mission_id} for user {user_id}")
+        # In a real application, you'd validate mission_id against a MissionService
+        # For now, we'll assume mission_id is valid if it's not found in progress.
+        
+        mission_progress = await self.get_mission_progress(user_id, mission_id)
+        if mission_progress:
+            if mission_progress.status == "completed":
+                logging.info(f"Mission {mission_id} for user {user_id} is already completed. Not restarting.")
+                return mission_progress
+            logging.info(f"Resuming mission {mission_id} for user {user_id}")
+            mission_progress.status = "in_progress"
+            mission_progress.started_at = datetime.now() # Update started_at if resuming
+        else:
+            logging.info(f"Creating new mission progress for user {user_id}, mission {mission_id}")
+            mission_progress = UserMissionProgress(
                 user_id=user_id,
                 mission_id=mission_id,
                 status="in_progress",
                 progress=0.0,
-                started_at=datetime.datetime.utcnow()
+                started_at=datetime.now()
             )
-            session.add(new_progress)
-            session.commit()
-            logging.info(f"Usuario {user_id} ha iniciado la misión '{mission_id}'.")
-            return new_progress
+            self.session.add(mission_progress)
+        await self.session.commit()
+        await self.session.refresh(mission_progress)
+        logging.info(f"Mission {mission_id} for user {user_id} started/resumed successfully.")
+        return mission_progress
 
-    @staticmethod
-    def update_progress(user_id: int, mission_id: str, progress: float) -> None:
-        """
-        Actualiza el porcentaje de progreso de una misión.
-
-        El progreso se limita a un máximo de 100.0.
+    async def update_progress(self, user_id: int, mission_id: str, progress: float) -> UserMissionProgress:
+        """Updates the progress of a specific mission for a user.
 
         Args:
-            user_id (int): El ID del usuario.
-            mission_id (str): El ID de la misión.
-            progress (float): El nuevo porcentaje de progreso.
+            user_id (int): The ID of the user.
+            mission_id (str): The ID of the mission.
+            progress (float): The new progress value (0.0 to 100.0).
+
+        Returns:
+            UserMissionProgress: The updated UserMissionProgress object.
 
         Raises:
-            ValueError: Si no se encuentra la misión para el usuario.
+            ValueError: If the mission is not found or progress is invalid.
         """
-        with SessionLocal() as session:
-            mission_progress = UserMissionRepository._get_progress_entry(session, user_id, mission_id)
-            if not mission_progress:
-                raise ValueError(f"No se encontró la misión '{mission_id}' para el usuario {user_id}.")
-            
-            # Limitar el progreso a 100.0
-            mission_progress.progress = min(progress, 100.0)
-            
-            session.commit()
-            logging.info(f"Progreso de la misión '{mission_id}' para el usuario {user_id} actualizado a {mission_progress.progress}%.")
+        logging.info(f"Updating progress for user {user_id}, mission {mission_id} to {progress}")
+        if not 0.0 <= progress <= 100.0:
+            raise ValueError("Progress must be between 0.0 and 100.0")
 
-    @staticmethod
-    def complete_mission(user_id: int, mission_id: str) -> None:
-        """
-        Marca una misión como completada.
+        mission_progress = await self.get_mission_progress(user_id, mission_id)
+        if not mission_progress:
+            raise ValueError(f"Mission {mission_id} not found for user {user_id}. Cannot update progress.")
+
+        if mission_progress.status == "completed":
+            logging.warning(f"Attempted to update progress for already completed mission {mission_id} for user {user_id}.")
+            return mission_progress
+
+        mission_progress.progress = progress
+        await self.session.commit()
+        await self.session.refresh(mission_progress)
+        logging.info(f"Progress for user {user_id}, mission {mission_id} updated to {progress}.")
+        return mission_progress
+
+    async def complete_mission(self, user_id: int, mission_id: str) -> UserMissionProgress:
+        """Marks a mission as completed for a user.
 
         Args:
-            user_id (int): El ID del usuario.
-            mission_id (str): El ID de la misión.
+            user_id (int): The ID of the user.
+            mission_id (str): The ID of the mission to complete.
+
+        Returns:
+            UserMissionProgress: The updated UserMissionProgress object.
 
         Raises:
-            ValueError: Si no se encuentra la misión para el usuario.
+            ValueError: If the mission is not found.
         """
-        with SessionLocal() as session:
-            mission_progress = UserMissionRepository._get_progress_entry(session, user_id, mission_id)
-            if not mission_progress:
-                raise ValueError(f"No se encontró la misión '{mission_id}' para el usuario {user_id}.")
-            
-            mission_progress.status = "completed"
-            mission_progress.progress = 100.0
-            mission_progress.completed_at = datetime.datetime.utcnow()
-            
-            session.commit()
-            logging.info(f"Misión '{mission_id}' completada por el usuario {user_id}.")
+        logging.info(f"Attempting to complete mission {mission_id} for user {user_id}")
+        mission_progress = await self.get_mission_progress(user_id, mission_id)
+        if not mission_progress:
+            raise ValueError(f"Mission {mission_id} not found for user {user_id}. Cannot complete.")
 
-    @staticmethod
-    def fail_mission(user_id: int, mission_id: str) -> None:
-        """
-        Marca una misión como fallida.
+        if mission_progress.status == "completed":
+            logging.info(f"Mission {mission_id} for user {user_id} is already completed.")
+            return mission_progress
+
+        mission_progress.status = "completed"
+        mission_progress.progress = 100.0
+        mission_progress.completed_at = datetime.now()
+        await self.session.commit()
+        await self.session.refresh(mission_progress)
+        logging.info(f"Mission {mission_id} for user {user_id} marked as completed.")
+        return mission_progress
+
+    async def fail_mission(self, user_id: int, mission_id: str) -> UserMissionProgress:
+        """Marks a mission as failed for a user.
 
         Args:
-            user_id (int): El ID del usuario.
-            mission_id (str): El ID de la misión.
+            user_id (int): The ID of the user.
+            mission_id (str): The ID of the mission to fail.
+
+        Returns:
+            UserMissionProgress: The updated UserMissionProgress object.
 
         Raises:
-            ValueError: Si no se encuentra la misión para el usuario.
+            ValueError: If the mission is not found.
         """
-        with SessionLocal() as session:
-            mission_progress = UserMissionRepository._get_progress_entry(session, user_id, mission_id)
-            if not mission_progress:
-                raise ValueError(f"No se encontró la misión '{mission_id}' para el usuario {user_id}.")
-            
-            mission_progress.status = "failed"
-            mission_progress.completed_at = datetime.datetime.utcnow() # Se usa completed_at para registrar cuándo terminó.
-            
-            session.commit()
-            logging.info(f"Misión '{mission_id}' fallida para el usuario {user_id}.")
+        logging.info(f"Attempting to fail mission {mission_id} for user {user_id}")
+        mission_progress = await self.get_mission_progress(user_id, mission_id)
+        if not mission_progress:
+            raise ValueError(f"Mission {mission_id} not found for user {user_id}. Cannot fail.")
+
+        if mission_progress.status in ["completed", "failed"]:
+            logging.info(f"Mission {mission_id} for user {user_id} is already {mission_progress.status}. Not marking as failed.")
+            return mission_progress
+
+        mission_progress.status = "failed"
+        await self.session.commit()
+        await self.session.refresh(mission_progress)
+        logging.info(f"Mission {mission_id} for user {user_id} marked as failed.")
+        return mission_progress
