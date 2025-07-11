@@ -1,0 +1,88 @@
+{
+  "daily_chatter": {
+    "title": "¡Chismoso del Día!",
+    "description": "Envía 3 mensajes en cualquier canal de la comunidad para mantener la conversación viva.",
+    "type": "diaria",
+    "reward": {
+      "besitos": 15,
+      "exp": 10
+    },
+    "requirements": {
+      "action": "completar_mensaje",
+      "target": 3
+    },
+    "duration_hours": 24,
+    "repeatable": true
+  },
+  "weekly_streak": {
+    "title": "¡Racha Imparable!",
+    "description": "Conéctate al bot al menos una vez al día durante 7 días seguidos.",
+    "type": "semanal",
+    "reward": {
+      "besitos": 75,
+      "exp": 50
+    },
+    "requirements": {
+      "action": "mantener_racha",
+      "target": 7
+    },
+    "duration_hours": 168,
+    "repeatable": true
+  },
+  "special_vip_access": {
+    "title": "¡Pase VIP a la Zona Secreta!",
+    "description": "Visita nuestro exclusivo canal VIP para descubrir contenido ultra secreto.",
+    "type": "especial",
+    "reward": {
+      "besitos": 100,
+      "exp": 75,
+      "item": "acceso_vip"
+    },
+    "requirements": {
+      "action": "visitar_canal",
+      "target": 1,
+      "metadata": {
+        "canal_id": "ID_CANAL_VIP_EJEMPLO"
+      }
+    },
+    "duration_hours": 0,
+    "repeatable": false
+  },
+  "special_diana_trivia": {
+    "title": "¡Diana al Descubierto!",
+    "description": "Demuestra cuánto sabes sobre la historia de Diana respondiendo correctamente a 5 preguntas de trivia.",
+    "type": "especial",
+    "reward": {
+      "besitos": 50,
+      "exp": 30
+    },
+    "requirements": {
+      "action": "responder_trivia",
+      "target": 5,
+      "metadata": {
+        "tema": "historia_diana"
+      }
+    },
+    "duration_hours": 0,
+    "repeatable": false
+  },
+  "special_hidden_image": {
+    "title": "¡El Secreto de Diana Revelado!",
+    "description": "Completa esta misión especial para desbloquear una imagen oculta y exclusiva de Diana.",
+    "type": "especial",
+    "reward": {
+      "besitos": 80,
+      "exp": 60,
+      "item": "imagen_diana_oculta"
+    },
+    "requirements": {
+      "action": "completar_mision_previa",
+      "target": 1,
+      "metadata": {
+        "mision_id": "special_diana_trivia"
+      }
+    },
+    "duration_hours": 0,
+    "repeatable": false
+  }
+}
