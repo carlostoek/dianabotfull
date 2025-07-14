@@ -13,14 +13,9 @@ class TelegramBot:
 
     def setup_handlers(self):
         # Aquí registraremos todos los handlers
-        from .handlers import user_handlers, admin_handlers, story_handlers, game_handlers, seed_handlers, profile_handler, main_menu_handlers
-        self.dp.include_router(user_handlers.router)
-        self.dp.include_router(admin_handlers.router)
-        self.dp.include_router(story_handlers.router)
-        self.dp.include_router(game_handlers.router)
-        self.dp.include_router(seed_handlers.router)
-        self.dp.include_router(profile_handler.profile_router)
-        self.dp.include_router(main_menu_handlers.router)
+        from .handlers import all_routers
+        for router in all_routers:
+            self.dp.include_router(router)
 
     async def start(self):
         await self.dp.start_polling(self.bot)
