@@ -1,13 +1,11 @@
 from aiogram import Router, types
 from aiogram.filters import Command
 import asyncio
+import logging
 from sqlalchemy.ext.asyncio import AsyncSession # Importar AsyncSession
 from src.database.seeds import seed_initial_data
 
 router = Router()
-
-@router.message(Command("seed"))
-import logging
 
 logger = logging.getLogger(__name__)
 
