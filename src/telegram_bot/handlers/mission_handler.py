@@ -1,74 +1,103 @@
-from telegram import Update, ParseMode
-from telegram.ext import CallbackContext
+# src/telegram_bot/handlers/mission_handler.py
+"""
+Handlers for mission-related commands and callbacks.
+"""
+import logging
+from aiogram import Router, F
+from aiogram.types import CallbackQuery
+from sqlalchemy.ext.asyncio import AsyncSession
 
-from ...services.mission_service import MissionService
-from ..menus.mission_menu import create_mission_layout
+from src.services.mission_service import MissionService
+from src.services.user_service import UserService
+from src.telegram_bot.menus.mission_menu import create_mission_layout
+from src.utils.menu_factory import get_main_menu, format_section_message
 
-# In a real application, this service instance would be managed by a
-# dependency injection container or a central app context.
-mission_service = MissionService()
+logger = logging.getLogger(__name__)
+router = Router()
 
-# This is a placeholder for updating the user's currency ("besitos").
-# In a real implementation, this would call a dedicated ProfileService or UserRepository.
-def _add_besitos_to_user(user_id: int, amount: int):
-    """Simulates adding currency to a user's profile."""
-    print(f"INFO: Adding {amount} besitos to user {user_id}. (Simulated)")
-    # Example of what a real implementation would look like:
-    # profile_service = ProfileService()
-    # profile_service.add_besitos(user_id, amount)
-
-
-def mission_command_handler(update: Update, context: CallbackContext) -> None:
+@router.callback_query(F.data == "missions_daily")
+async def handle_daily_mission(callback_query: CallbackQuery, session: AsyncSession):
     """
-    Handles the /mision command, showing the user their daily mission.
+    Handles the 'Daily Missions' button and shows the current daily mission.
     """
-    user_id = update.effective_user.id
-    mission = mission_service.get_daily_mission(user_id)
-
-    if not mission:
-        update.message.reply_text("Parece que no hay misiones disponibles hoy. ¡Vuelve mañana!")
-        return
-
-    text, keyboard = create_mission_layout(mission)
-    update.message.reply_text(text, reply_markup=keyboard, parse_mode=ParseMode.MARKDOWN)
-
-
-def claim_mission_callback_handler(update: Update, context: CallbackContext) -> None:
-    """
-    Handles the callback query for claiming a mission reward.
-    """
-    query = update.callback_query
-    query.answer()  # Acknowledge the callback to remove the "loading" state on the client
-
-    user_id = query.from_user.id
-    callback_data = query.data
-    
-    # Expected callback_data format: "claim_mission_{mission_id}"
     try:
-        mission_id = callback_data.split('_')[2]
-    except IndexError:
-        query.edit_message_text("Error: Callback inválido o malformado.")
-        return
+        user_id = callback_query.from_user.id
+        mission_service = MissionService(session)
+        mission = await mission_service.get_daily_mission(user_id)
 
-    reward = mission_service.complete_mission(user_id, mission_id)
+        if not mission:
+            await callback_query.answer("No hay misiones diarias disponibles hoy.", show_alert=True)
+            return
 
-    if reward is not None:
-        # Add reward to the user's profile
-        _add_besitos_to_user(user_id, reward)
-        
-        # Get the updated mission state to show the "Completed" view
-        updated_mission = mission_service.get_daily_mission(user_id)
-        text, keyboard = create_mission_layout(updated_mission)
-        
-        # Notify the user of their success and show the updated mission status
-        query.edit_message_text(
-            f"¡Felicidades! Has completado la misión y ganado **{reward} besitos**.\n\n{text}",
+        text, keyboard = create_mission_layout(mission)
+        await callback_query.message.edit_text(
+            text,
             reply_markup=keyboard,
-            parse_mode=ParseMode.MARKDOWN
+            parse_mode="Markdown"
         )
-    else:
-        # This can happen if the mission was already claimed or if the state is inconsistent.
-        query.edit_message_text(
-            "Esta misión no se puede reclamar. Es posible que ya la hayas completado o que haya caducado.",
-            reply_markup=query.message.reply_markup  # Keep the original keyboard
+        logger.info(f"User {user_id} viewed their daily mission.")
+
+    except Exception as e:
+        logger.error(f"Error in handle_daily_mission for user {callback_query.from_user.id}: {e}", exc_info=True)
+        await callback_query.answer("😕 Hubo un problema al cargar la misión. Intenta de nuevo.", show_alert=True)
+
+@router.callback_query(F.data.startswith("claim_mission_"))
+async def handle_claim_mission(callback_query: CallbackQuery, session: AsyncSession):
+    """
+    Handles the callback for claiming a mission reward.
+    """
+    try:
+        user_id = callback_query.from_user.id
+        try:
+            mission_id = int(callback_query.data.split("_")[2])
+        except (IndexError, ValueError):
+            await callback_query.answer("Error: Misión no válida.", show_alert=True)
+            return
+
+        mission_service = MissionService(session)
+        reward = await mission_service.complete_mission(user_id, mission_id)
+
+        if reward is not None:
+            user_service = UserService(session)
+            # This assumes a method to add currency exists in UserService
+            # If not, this line will need to be adjusted.
+            await user_service.add_currency(user_id, reward)
+            
+            updated_mission = await mission_service.get_mission_by_id(user_id, mission_id)
+            text, keyboard = create_mission_layout(updated_mission)
+
+            await callback_query.message.edit_text(
+                f"¡Felicidades! Has completado la misión y ganado **{reward} besitos**.\n\n{text}",
+                reply_markup=keyboard,
+                parse_mode="Markdown"
+            )
+            logger.info(f"User {user_id} claimed {reward} besitos from mission {mission_id}.")
+        else:
+            await callback_query.answer("Esta misión ya ha sido reclamada o no se puede completar.", show_alert=True)
+
+    except Exception as e:
+        logger.error(f"Error in handle_claim_mission for user {callback_query.from_user.id}: {e}", exc_info=True)
+        await callback_query.answer("😕 Hubo un problema al reclamar la misión. Intenta de nuevo.", show_alert=True)
+
+@router.callback_query(F.data == "main_menu")
+async def handle_back_to_main_menu(callback_query: CallbackQuery):
+    """
+    Handles the 'Back to Menu' button, returning to the main menu.
+    """
+    try:
+        username = callback_query.from_user.username or "Aventurero"
+        title = f"BIENVENIDO, {username.upper()}"
+        content = "Soy Diana, tu guía en este viaje. Usa el menú de abajo para explorar las opciones disponibles."
+        
+        welcome_text = format_section_message(title, content, emoji="✨")
+        
+        await callback_query.message.edit_text(
+            text=welcome_text,
+            reply_markup=get_main_menu(),
+            parse_mode="Markdown"
         )
+        logger.info(f"User {callback_query.from_user.id} returned to the main menu.")
+
+    except Exception as e:
+        logger.error(f"Error in handle_back_to_main_menu for user {callback_query.from_user.id}: {e}", exc_info=True)
+        await callback_query.answer("😕 Hubo un problema al volver al menú. Intenta de nuevo.", show_alert=True)

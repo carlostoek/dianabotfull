@@ -1,4 +1,9 @@
-from telegram import InlineKeyboardButton, InlineKeyboardMarkup
+# src/telegram_bot/menus/mission_menu.py
+"""
+Creates the layout for a daily mission using aiogram.
+"""
+from aiogram.types import InlineKeyboardMarkup
+from aiogram.utils.keyboard import InlineKeyboardBuilder
 from typing import Dict, Tuple
 
 def create_mission_layout(mission: Dict) -> Tuple[str, InlineKeyboardMarkup]:
@@ -27,14 +32,13 @@ def create_mission_layout(mission: Dict) -> Tuple[str, InlineKeyboardMarkup]:
         f"▫️ Estado: {state_text}"
     )
 
-    keyboard = []
+    builder = InlineKeyboardBuilder()
     if not completed:
         # Callback data format is crucial for the handler
-        keyboard.append([
-            InlineKeyboardButton("✅ Reclamar Recompensa", callback_data=f"claim_mission_{mission['id']}")
-        ])
+        builder.button(text="✅ Reclamar Recompensa", callback_data=f"claim_mission_{mission['id']}")
     
     # Assuming a main menu callback exists
-    keyboard.append([InlineKeyboardButton("‹ Volver al Menú", callback_data="main_menu")])
+    builder.button(text="‹ Volver al Menú", callback_data="main_menu")
+    builder.adjust(1) # Adjust to have one button per row
 
-    return text, InlineKeyboardMarkup(keyboard)
+    return text, builder.as_markup()
